@@ -1,9 +1,9 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import Image from 'next/image'
 import AdminLayout from '@/components/AdminLayout'
 import { Input, PageHeader } from '@/components/FormElements'
+import ImageUpload from '@/components/ImageUpload'
 import { SaveResetButtons } from '@/components/SaveResetButtons'
 import { axiosInstance } from '@/lib/axios'
 import { useLanguage } from '@/contexts/LanguageContext'
@@ -913,32 +913,17 @@ export default function FooterPage() {
               />
               
               {/* Image Upload */}
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
-                  Лого зураг
-                </label>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0]
-                    if (file) handleImageChange(file)
-                  }}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent text-sm"
-                />
-                {data.logoImage.value && data.logoImage.type === 'upload' && (
-                  <div className="mt-3">
-                    <Image 
-                      src={data.logoImage.value} 
-                      alt="Logo preview" 
-                      width={48}
-                      height={48}
-                      className="w-12 h-12 object-cover rounded-lg border border-slate-200"
-                      unoptimized={data.logoImage.value.startsWith('blob:')}
-                    />
-                  </div>
-                )}
-              </div>
+              <ImageUpload
+                label="Лого зураг"
+                value={data.logoImage.value}
+                onChange={(url) => {
+                  setData({
+                    ...data,
+                    logoImage: { type: 'upload', value: url },
+                    logoFile: undefined, // Clear file input
+                  })
+                }}
+              />
 
               {/* SVG Input */}
               <div>
