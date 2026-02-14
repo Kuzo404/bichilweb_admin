@@ -103,121 +103,124 @@ export async function POST(request: NextRequest) {
       console.log('✅ Header үүсгэгдлээ. ID:', headerId)
     }
 
-    // ── 2. Хуучин цэснүүдийг устгах ──
-    console.log('🗑️ Хуучин цэснүүдийг устгаж байна...')
-    const existingRes = await fetch(`${BACKEND_URL}/headers/${headerId}/`, {
-      headers: { 'Accept': 'application/json' },
-    })
-
-    if (existingRes.ok) {
-      const existing = await existingRes.json()
-      const existingMenus = existing.menus || []
-      let deletedCount = { tertiary: 0, submenu: 0, menu: 0 }
-
-      // Гүнзгийрүүлж устгах: tertiary → submenu → menu
-      for (const menu of existingMenus) {
-        for (const sub of (menu.submenus || [])) {
-          for (const ter of (sub.tertiary_menus || [])) {
-            const delRes = await fetch(`${BACKEND_URL}/header-tertiary/${ter.id}/`, { method: 'DELETE' })
-            if (delRes.ok) deletedCount.tertiary++
-          }
-          const delRes = await fetch(`${BACKEND_URL}/header-submenu/${sub.id}/`, { method: 'DELETE' })
-          if (delRes.ok) deletedCount.submenu++
-        }
-        const delRes = await fetch(`${BACKEND_URL}/header-menu/${menu.id}/`, { method: 'DELETE' })
-        if (delRes.ok) deletedCount.menu++
-      }
-      console.log(`  ✅ Устгагдлаа: ${deletedCount.menu} меню, ${deletedCount.submenu} дэд цэс, ${deletedCount.tertiary} 3-р цэс`)
-    } else {
-      console.log('  ℹ️ Хуучин цэс олдсонгүй')
-    }
-
-    // ── 3. Шинэ цэснүүдийг үүсгэх ──
-    for (const menu of (body.menus || [])) {
-      // 1-р түвшин: Үндсэн цэс
-      const menuPayload = {
-        header: headerId,
-        path: menu.path || '',
-        font: typeof menu.font === 'string' ? 0 : (menu.font || 0),
-        index: menu.index ?? 0,
-        visible: menu.visible ?? 1,
-        // Django serializer: 'translations' field нэрийг хүлээн авна (source нь дотоод маппинг)
-        translations: (menu.translations || []).map((t: { label: string; language_id: number }) => ({
-          language: t.language_id,
-          label: t.label || '',
-        })),
-      }
-
-      const menuRes = await fetch(`${BACKEND_URL}/header-menu/`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(menuPayload),
+    // Logo-only save: if no menus/styles, skip menu/style logic
+    if (body.menus && body.menus.length > 0) {
+      // ── 2. Хуучин цэснүүдийг устгах ──
+      console.log('🗑️ Хуучин цэснүүдийг устгаж байна...')
+      const existingRes = await fetch(`${BACKEND_URL}/headers/${headerId}/`, {
+        headers: { 'Accept': 'application/json' },
       })
 
-      if (!menuRes.ok) {
-        const errText = await menuRes.text()
-        console.error('Цэс үүсгэхэд алдаа:', errText)
-        continue
+      if (existingRes.ok) {
+        const existing = await existingRes.json()
+        const existingMenus = existing.menus || []
+        let deletedCount = { tertiary: 0, submenu: 0, menu: 0 }
+
+        // Гүнзгийрүүлж устгах: tertiary → submenu → menu
+        for (const menu of existingMenus) {
+          for (const sub of (menu.submenus || [])) {
+            for (const ter of (sub.tertiary_menus || [])) {
+              const delRes = await fetch(`${BACKEND_URL}/header-tertiary/${ter.id}/`, { method: 'DELETE' })
+              if (delRes.ok) deletedCount.tertiary++
+            }
+            const delRes = await fetch(`${BACKEND_URL}/header-submenu/${sub.id}/`, { method: 'DELETE' })
+            if (delRes.ok) deletedCount.submenu++
+          }
+          const delRes = await fetch(`${BACKEND_URL}/header-menu/${menu.id}/`, { method: 'DELETE' })
+          if (delRes.ok) deletedCount.menu++
+        }
+        console.log(`  ✅ Устгагдлаа: ${deletedCount.menu} меню, ${deletedCount.submenu} дэд цэс, ${deletedCount.tertiary} 3-р цэс`)
+      } else {
+        console.log('  ℹ️ Хуучин цэс олдсонгүй')
       }
 
-      const menuData = await menuRes.json()
-      const newMenuId = menuData.id
-
-      // 2-р түвшин: Дэд цэснүүд
-      for (const submenu of (menu.submenus || [])) {
-        const subPayload = {
-          header_menu: newMenuId,
-          path: submenu.path || '',
-          font: typeof submenu.font === 'string' ? 0 : (submenu.font || 0),
-          index: submenu.index ?? 0,
-          visible: submenu.visible ?? 1,
-          // Submenu translations
-          translations: (submenu.translations || []).map((t: { label: string; language_id: number }) => ({
+      // ── 3. Шинэ цэснүүдийг үүсгэх ──
+      for (const menu of (body.menus || [])) {
+        // 1-р түвшин: Үндсэн цэс
+        const menuPayload = {
+          header: headerId,
+          path: menu.path || '',
+          font: typeof menu.font === 'string' ? 0 : (menu.font || 0),
+          index: menu.index ?? 0,
+          visible: menu.visible ?? 1,
+          // Django serializer: 'translations' field нэрийг хүлээн авна (source нь дотоод маппинг)
+          translations: (menu.translations || []).map((t: { label: string; language_id: number }) => ({
             language: t.language_id,
             label: t.label || '',
           })),
         }
 
-        const subRes = await fetch(`${BACKEND_URL}/header-submenu/`, {
+        const menuRes = await fetch(`${BACKEND_URL}/header-menu/`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(subPayload),
+          body: JSON.stringify(menuPayload),
         })
 
-        if (!subRes.ok) {
-          const errText = await subRes.text()
-          console.error('Дэд цэс үүсгэхэд алдаа:', subPayload, errText)
-          throw new Error(`Дэд цэс үүсгэхэд алдаа: ${subRes.status} ${errText}`)
+        if (!menuRes.ok) {
+          const errText = await menuRes.text()
+          console.error('Цэс үүсгэхэд алдаа:', errText)
+          continue
         }
 
-        const subData = await subRes.json()
-        const newSubId = subData.id
+        const menuData = await menuRes.json()
+        const newMenuId = menuData.id
 
-        // 3-р түвшин: Гуравдагч цэснүүд
-        for (const tertiary of (submenu.tertiary_menus || [])) {
-          const terPayload = {
-            header_submenu: newSubId,
-            path: tertiary.path || '',
-            font: tertiary.font || '',
-            index: tertiary.index ?? 0,
-            visible: tertiary.visible ?? 1,
-            // Tertiary serializer: language_id field-ийг ашиглана
-            translations: (tertiary.translations || []).map((t: { label: string; language_id: number }) => ({
-              language_id: t.language_id,
+        // 2-р түвшин: Дэд цэснүүд
+        for (const submenu of (menu.submenus || [])) {
+          const subPayload = {
+            header_menu: newMenuId,
+            path: submenu.path || '',
+            font: typeof submenu.font === 'string' ? 0 : (submenu.font || 0),
+            index: submenu.index ?? 0,
+            visible: submenu.visible ?? 1,
+            // Submenu translations
+            translations: (submenu.translations || []).map((t: { label: string; language_id: number }) => ({
+              language: t.language_id,
               label: t.label || '',
             })),
           }
 
-          const terRes = await fetch(`${BACKEND_URL}/header-tertiary/`, {
+          const subRes = await fetch(`${BACKEND_URL}/header-submenu/`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(terPayload),
+            body: JSON.stringify(subPayload),
           })
 
-          if (!terRes.ok) {
-            const errText = await terRes.text()
-            console.error('3-р түвшний цэс үүсгэхэд алдаа:', terPayload, errText)
-            throw new Error(`3-р түвшний цэс үүсгэхэд алдаа: ${terRes.status} ${errText}`)
+          if (!subRes.ok) {
+            const errText = await subRes.text()
+            console.error('Дэд цэс үүсгэхэд алдаа:', subPayload, errText)
+            throw new Error(`Дэд цэс үүсгэхэд алдаа: ${subRes.status} ${errText}`)
+          }
+
+          const subData = await subRes.json()
+          const newSubId = subData.id
+
+          // 3-р түвшин: Гуравдагч цэснүүд
+          for (const tertiary of (submenu.tertiary_menus || [])) {
+            const terPayload = {
+              header_submenu: newSubId,
+              path: tertiary.path || '',
+              font: tertiary.font || '',
+              index: tertiary.index ?? 0,
+              visible: tertiary.visible ?? 1,
+              // Tertiary serializer: language_id field-ийг ашиглана
+              translations: (tertiary.translations || []).map((t: { label: string; language_id: number }) => ({
+                language_id: t.language_id,
+                label: t.label || '',
+              })),
+            }
+
+            const terRes = await fetch(`${BACKEND_URL}/header-tertiary/`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(terPayload),
+            })
+
+            if (!terRes.ok) {
+              const errText = await terRes.text()
+              console.error('3-р түвшний цэс үүсгэхэд алдаа:', terPayload, errText)
+              throw new Error(`3-р түвшний цэс үүсгэхэд алдаа: ${terRes.status} ${errText}`)
+            }
           }
         }
       }

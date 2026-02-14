@@ -169,6 +169,8 @@ export default function HeaderPage() {
     { label: 'Гадаад линк (өөрөө бичих)', value: 'custom' },
   ])
   const [loadingPages, setLoadingPages] = useState(false)
+  const [logoHistory, setLogoHistory] = useState<string[]>([])
+  const [isSavingLogo, setIsSavingLogo] = useState(false)
 
   useEffect(() => {
     fetchData()
@@ -476,6 +478,69 @@ export default function HeaderPage() {
     const defaultItems: MenuItem[] = []
     setMenuItems(defaultItems)
     setOriginalMenuItems(JSON.parse(JSON.stringify(defaultItems)))
+  }
+
+  // ── Logo-only save function ──
+  const handleSaveLogo = async () => {
+    try {
+      setIsSavingLogo(true)
+      
+      if (!headerStyle.logoUrl) {
+        alert('Лого URL байхгүй байна.')
+        return
+      }
+
+      console.log('Logo хадгалж байна... URL:', headerStyle.logoUrl.substring(0, 50) + '...')
+      
+      // Only send logo and logo_size to backend
+      const logoData = {
+        id: headerId || undefined,
+        logo: headerStyle.logoUrl,
+        logo_size: headerStyle.logoSize,
+        active: 1,
+      }
+
+      const response = await fetch(`${API_BASE_URL}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(logoData)
+      })
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error('Server error:', errorText)
+        throw new Error(`Failed to save logo: ${response.status}`)
+      }
+
+      const result = await response.json()
+      console.log('Logo saved successfully:', result)
+      
+      // Add to logo history
+      if (!logoHistory.includes(headerStyle.logoUrl)) {
+        setLogoHistory(prev => [headerStyle.logoUrl, ...prev].slice(0, 10))
+      }
+      
+      alert('Логог амжилттай хадгалагдлаа! 🎉')
+    } catch (error) {
+      console.error('Error saving logo:', error)
+      const errorMsg = error instanceof Error ? error.message : 'Unknown error'
+      alert(`Логог хадгалахад алдаа гарлаа: ${errorMsg}`)
+    } finally {
+      setIsSavingLogo(false)
+    }
+  }
+
+  const handleDeleteLogo = () => {
+    if (!confirm('Логог устгах уу?')) return
+    setHeaderStyle({ ...headerStyle, logoUrl: '' })
+  }
+
+  const handleApplyHistoryLogo = (url: string) => {
+    setHeaderStyle({ ...headerStyle, logoUrl: url })
+  }
+
+  const handleDeleteHistoryLogo = (url: string) => {
+    setLogoHistory(prev => prev.filter(l => l !== url))
   }
 
   const handleSaveAll = async () => {
@@ -1164,7 +1229,7 @@ export default function HeaderPage() {
                     <div className="mt-4 p-4 bg-white rounded-lg border border-slate-200">
                       <p className="text-xs text-slate-600 font-medium mb-3">Урьдчилан харах:</p>
                       <div className="flex items-center justify-center p-6 bg-slate-100 rounded-lg min-h-24">
-                        <div style={{ width: `${headerStyle.logoSize}px`, height: `${headerStyle.logoSize}px` }} className="flex items-center justify-center bg-white rounded-lg overflow-hidden">
+                        <div style={{ width: `${headerStyle.logoSize}px`, height: `${headerStyle.logoSize}px` }} className="flex items-center justify-center overflow-hidden">
                           <img 
                             src={headerStyle.logoUrl} 
                             alt="Logo Preview" 
@@ -1188,6 +1253,66 @@ export default function HeaderPage() {
                     </div>
                   )}
                 </div>
+
+                {logoHistory.length > 0 && (
+                  <div className="p-4 bg-slate-50 rounded-lg border border-slate-200">
+                    <label className="block text-sm font-semibold text-slate-900 mb-3">Логоны түүх</label>
+                    <p className="text-xs text-slate-500 mb-3">Өмнө ашигласан логонууд:</p>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 max-h-48 overflow-y-auto">
+                      {logoHistory.map((url, idx) => (
+                        <div key={idx} className="relative group">
+                          <button
+                            onClick={() => handleApplyHistoryLogo(url)}
+                            className="w-full h-16 rounded-lg border border-slate-200 hover:border-teal-500 overflow-hidden flex items-center justify-center bg-white hover:bg-slate-50 transition-colors"
+                          >
+                            <img
+                              src={url}
+                              alt={`Logo ${idx}`}
+                              className="max-h-12 max-w-full object-contain"
+                              onError={() => {}}
+                            />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteHistoryLogo(url)}
+                            className="absolute -top-2 -right-2 opacity-0 group-hover:opacity-100 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center text-xs hover:bg-red-600 transition-all"
+                          >
+                            ×
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {logoHistory.length > 0 && (
+                  <div className="p-4 bg-slate-50 rounded-lg border border-slate-200">
+                    <label className="block text-sm font-semibold text-slate-900 mb-3">Логоны түүх</label>
+                    <p className="text-xs text-slate-500 mb-3">Өмнө ашигласан логонууд:</p>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 max-h-48 overflow-y-auto">
+                      {logoHistory.map((url, idx) => (
+                        <div key={idx} className="relative group">
+                          <button
+                            onClick={() => handleApplyHistoryLogo(url)}
+                            className="w-full h-16 rounded-lg border border-slate-200 hover:border-teal-500 overflow-hidden flex items-center justify-center bg-white hover:bg-slate-50 transition-colors"
+                          >
+                            <img
+                              src={url}
+                              alt={`Logo ${idx}`}
+                              className="max-h-12 max-w-full object-contain"
+                              onError={() => {}}
+                            />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteHistoryLogo(url)}
+                            className="absolute -top-2 -right-2 opacity-0 group-hover:opacity-100 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center text-xs hover:bg-red-600 transition-all"
+                          >
+                            ×
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 <div className="p-4 bg-slate-50 rounded-lg border border-slate-200">
                   <label className="block text-sm font-semibold text-slate-900 mb-1">Logo хэмжээ</label>
@@ -1232,32 +1357,33 @@ export default function HeaderPage() {
             </div>
 
             <div className="flex justify-end gap-3">
+              {headerStyle.logoUrl && (
+                <button
+                  onClick={handleDeleteLogo}
+                  className="px-4 py-2.5 text-sm font-medium text-red-600 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 transition-colors flex items-center gap-2"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                  Устгах
+                </button>
+              )}
               <button onClick={handleReset} className="px-4 py-2.5 text-sm font-medium text-slate-600 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors flex items-center gap-2">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
                 </svg>
                 Буцах
               </button>
-              <button
-                onClick={handleServerSubmit}
-                disabled={isSavingToServer}
-                className={`px-4 py-2.5 text-sm font-semibold rounded text-white transition-colors flex items-center gap-2 ${
-                  isSavingToServer
-                    ? 'bg-blue-400 cursor-not-allowed'
-                    : 'bg-blue-600 hover:bg-blue-700'
-                }`}
+              <Button
+                variant="dark"
+                onClick={handleSaveLogo}
+                disabled={isSavingLogo}
               >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                </svg>
-                {isSavingToServer ? ' Илгээж байна...' : ' Серверт илгээх'}
-              </button>
-              <Button variant="dark" onClick={handleSaveAll}>
                 <span className="flex items-center gap-2">
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
                   </svg>
-                  Хадгалах
+                  {isSavingLogo ? 'Хадгалж байна...' : 'Логог хадгалах'}
                 </span>
               </Button>
             </div>
