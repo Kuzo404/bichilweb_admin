@@ -787,13 +787,10 @@ export default function FooterPage() {
                               className="w-10 h-10 flex items-center justify-center [&_svg]:w-full [&_svg]:h-full"
                             />
                           ) : (
-                            <Image
+                            <img
                               src={data.logoImage.value}
                               alt="Logo"
-                              width={40}
-                              height={40}
                               className="w-10 h-10 object-cover"
-                              unoptimized={data.logoImage.value.startsWith('blob:')}
                             />
                           )}
                         </div>
