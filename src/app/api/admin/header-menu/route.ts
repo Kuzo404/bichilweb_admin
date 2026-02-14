@@ -67,11 +67,16 @@ export async function POST(request: NextRequest) {
 
     if (headerId) {
       // Байгаа header-г шинэчлэх
-      await fetch(`${BACKEND_URL}/headers/${headerId}/`, {
+      const headerUpdateRes = await fetch(`${BACKEND_URL}/headers/${headerId}/`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ logo: body.logo || '', active: body.active ?? 1 }),
       })
+      if (!headerUpdateRes.ok) {
+        const errText = await headerUpdateRes.text()
+        console.error('Header шинэчлэхэд алдаа:', headerUpdateRes.status, errText)
+        throw new Error(`Header шинэчлэхэд алдаа: ${headerUpdateRes.status} ${errText}`)
+      }
     } else {
       // Шинэ header үүсгэх
       const headerRes = await fetch(`${BACKEND_URL}/headers/`, {
