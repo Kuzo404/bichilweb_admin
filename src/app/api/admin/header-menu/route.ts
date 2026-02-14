@@ -269,7 +269,15 @@ export async function POST(request: NextRequest) {
     const updatedRes = await fetch(`${BACKEND_URL}/headers/${headerId}/`, {
       headers: { 'Accept': 'application/json' },
     })
-    const updatedData = updatedRes.ok ? await updatedRes.json() : { id: headerId }
+    
+    if (!updatedRes.ok) {
+      console.error('❌ Updated header fetch failed:', updatedRes.status)
+      // Still return successful response with the created header ID
+      return NextResponse.json({ id: headerId, logo: body.logo, active: body.active ?? 1, menus: [], styles: [] }, { status: 200 })
+    }
+    
+    const updatedData = updatedRes.json()
+    console.log('✅ Шинэчлэгдсэн header буцаалаа:', JSON.stringify(updatedData, null, 2))
 
     return NextResponse.json(updatedData, { status: 200 })
   } catch (error) {
