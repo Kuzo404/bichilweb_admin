@@ -6,7 +6,6 @@ import Modal from '@/components/Modal'
 import ImageUpload from '@/components/ImageUpload'
 import { Input, Select, Checkbox, Button, PageHeader, StatusBadge, FormActions } from '@/components/FormElements'
 import { PlusIcon, PhotoIcon } from '@heroicons/react/24/outline'
-import Image from 'next/image'
 
 interface Slide {
   id: string
@@ -132,7 +131,7 @@ export default function SlidesPage() {
       render: (slide: Slide) => (
         <div className="h-14 w-24 relative rounded-lg overflow-hidden bg-gray-100 ring-1 ring-gray-200">
           {slide.mediaUrl ? (
-            <Image src={slide.mediaUrl} alt={slide.title} fill className="object-cover" />
+            <img src={slide.mediaUrl} alt={slide.title} className="w-full h-full object-cover" />
           ) : (
             <div className="flex items-center justify-center h-full">
               <PhotoIcon className="h-6 w-6 text-gray-300" />
