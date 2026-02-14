@@ -58,15 +58,22 @@ export async function GET() {
 //   5. Бүрэн шинэчлэгдсэн header буцаах
 // ============================================================================
 export async function POST(request: NextRequest) {
+  const startTime = Date.now()
   try {
     const body = await request.json()
-    console.log('Header хадгалж байна...')
+    console.log('='.repeat(60))
+    console.log('Header хадгалж байна... Цаг:', new Date().toLocaleTimeString())
+    console.log('Menu items:', body.menus?.length || 0)
+    console.log('Source ID:', body.id)
+    console.log('Logo URL:', body.logo ? body.logo.substring(0, 50) + '...' : 'No logo')
+    console.log('='.repeat(60))
 
     // ── 1. Header бичлэг үүсгэх / шинэчлэх ──
     let headerId = body.id
 
     if (headerId) {
       // Байгаа header-г шинэчлэх
+      console.log(`📝 Header ${headerId} шинэчлэж байна...`)
       const headerUpdateRes = await fetch(`${BACKEND_URL}/headers/${headerId}/`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -74,11 +81,13 @@ export async function POST(request: NextRequest) {
       })
       if (!headerUpdateRes.ok) {
         const errText = await headerUpdateRes.text()
-        console.error('Header шинэчлэхэд алдаа:', headerUpdateRes.status, errText)
+        console.error('❌ Header шинэчлэхэд алдаа:', headerUpdateRes.status, errText)
         throw new Error(`Header шинэчлэхэд алдаа: ${headerUpdateRes.status} ${errText}`)
       }
+      console.log('✅ Header шинэчлэгдлээ')
     } else {
       // Шинэ header үүсгэх
+      console.log('➕ Шинэ Header үүсгэж байна...')
       const headerRes = await fetch(`${BACKEND_URL}/headers/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -86,14 +95,16 @@ export async function POST(request: NextRequest) {
       })
       if (!headerRes.ok) {
         const errText = await headerRes.text()
+        console.error('❌ Header үүсгэхэд алдаа:', headerRes.status, errText)
         throw new Error(`Header үүсгэхэд алдаа: ${headerRes.status} ${errText}`)
       }
       const headerData = await headerRes.json()
       headerId = headerData.id
+      console.log('✅ Header үүсгэгдлээ. ID:', headerId)
     }
 
     // ── 2. Хуучин цэснүүдийг устгах ──
-    // Headers endpoint-аас одоогийн nested бүтцийг авч, дотроос нь устгана
+    console.log('🗑️ Хуучин цэснүүдийг устгаж байна...')
     const existingRes = await fetch(`${BACKEND_URL}/headers/${headerId}/`, {
       headers: { 'Accept': 'application/json' },
     })
@@ -101,17 +112,24 @@ export async function POST(request: NextRequest) {
     if (existingRes.ok) {
       const existing = await existingRes.json()
       const existingMenus = existing.menus || []
+      let deletedCount = { tertiary: 0, submenu: 0, menu: 0 }
 
       // Гүнзгийрүүлж устгах: tertiary → submenu → menu
       for (const menu of existingMenus) {
         for (const sub of (menu.submenus || [])) {
           for (const ter of (sub.tertiary_menus || [])) {
-            await fetch(`${BACKEND_URL}/header-tertiary/${ter.id}/`, { method: 'DELETE' })
+            const delRes = await fetch(`${BACKEND_URL}/header-tertiary/${ter.id}/`, { method: 'DELETE' })
+            if (delRes.ok) deletedCount.tertiary++
           }
-          await fetch(`${BACKEND_URL}/header-submenu/${sub.id}/`, { method: 'DELETE' })
+          const delRes = await fetch(`${BACKEND_URL}/header-submenu/${sub.id}/`, { method: 'DELETE' })
+          if (delRes.ok) deletedCount.submenu++
         }
-        await fetch(`${BACKEND_URL}/header-menu/${menu.id}/`, { method: 'DELETE' })
+        const delRes = await fetch(`${BACKEND_URL}/header-menu/${menu.id}/`, { method: 'DELETE' })
+        if (delRes.ok) deletedCount.menu++
       }
+      console.log(`  ✅ Устгагдлаа: ${deletedCount.menu} меню, ${deletedCount.submenu} дэд цэс, ${deletedCount.tertiary} 3-р цэс`)
+    } else {
+      console.log('  ℹ️ Хуучин цэс олдсонгүй')
     }
 
     // ── 3. Шинэ цэснүүдийг үүсгэх ──

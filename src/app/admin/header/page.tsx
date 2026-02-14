@@ -470,8 +470,23 @@ export default function HeaderPage() {
   const handleSaveAll = async () => {
     try {
       setSaving(true)
+      
+      // Өгөгдлийн санд хадгалахын өмнө validate хийх
+      if (menuItems.length === 0) {
+        alert('Хамгийн дээд нэг цэс нэмэх шаардлагатай.')
+        return
+      }
+
       const apiData = transformInternalToApi()
       
+      // Validate header data
+      if (!apiData.id && !apiData.logo) {
+        console.warn('Header ID эсвэл logo байхгүй, энэ нь алдаа болж болно')
+      }
+
+      console.log('Header хадгалж байна...')
+      console.log('Menu items:', menuItems.length)
+      console.log('Header ID:', apiData.id)
       console.log('Sending to API:', JSON.stringify(apiData, null, 2))
       
       const response = await fetch(`${API_BASE_URL}`, {
@@ -482,6 +497,7 @@ export default function HeaderPage() {
 
       if (!response.ok) {
         const errorText = await response.text()
+        console.error('Server error response:', errorText)
         throw new Error(`Failed to save: ${response.status} ${response.statusText}\n${errorText}`)
       }
 
@@ -492,10 +508,14 @@ export default function HeaderPage() {
       setOriginalHeaderStyle(JSON.parse(JSON.stringify(headerStyle)))
       
       setSaveSuccess(true)
-      setTimeout(() => setSaveSuccess(false), 3000)
+      setTimeout(() => setSaveSuccess(false), 4000)
+      
+      // UI feedback
+      alert('Header үйлчилгээ амжилттай хадгалагдлаа! 🎉')
     } catch (error) {
-      console.error('Error saving:', error)
-      alert(`Хадгалахад алдаа гарлаа:\n\n${error instanceof Error ? error.message : 'Unknown error'}\n\nConsole-г шалгана уу.`)
+      console.error('Error saving header:', error)
+      const errorMsg = error instanceof Error ? error.message : 'Unknown error'
+      alert(`Хадгалахад алдаа гарлаа:\n\n${errorMsg}\n\nConsole-г дарж дэлгэрүүлэн үзнэ үү. (F12 хэмжээ)`)
     } finally {
       setSaving(false)
     }
