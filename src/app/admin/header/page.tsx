@@ -53,6 +53,8 @@ interface HeaderStyle {
   hovercolor: string
   height: number
   sticky: number
+  max_width?: string
+  logo_size?: number
 }
 
 interface HeaderData {

@@ -130,6 +130,7 @@ const initialFormData: BranchFormData = {
 const transformAPIToBranch = (apiData: BranchAPI): Branch => ({
   ...apiData,
   image: apiData.image_url || apiData.image || null,
+  image_url: apiData.image_url ?? null,
   latitude: apiData.latitude ? parseFloat(apiData.latitude) : null,
   longitude: apiData.longitude ? parseFloat(apiData.longitude) : null,
   category_id: apiData.category_id ?? null,

@@ -8,7 +8,7 @@ import DocumentSelector from '@/components/DocumentSelector'
 import { axiosInstance } from '@/lib/axios'
 
 
-interface Translation     { id?: number; language: number; label: string }
+interface Translation     { id: number; language: number; label: string }
 interface ServiceTranslation { id?: number; language: number; title: string; description: string }
 interface CardTranslation { id?: number; language: number; label: string; short_desc: string }
 

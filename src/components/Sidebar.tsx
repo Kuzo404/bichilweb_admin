@@ -230,7 +230,7 @@ export default function Sidebar() {
         {navigation.map((item) => {
           const hasChildren = 'children' in item && item.children
           const isExpanded = expandedItems.includes(item.name)
-          const isActive = item.href
+          const isActive = 'href' in item && item.href
             ? pathname === item.href ||
               (item.href !== '/' && pathname?.startsWith(item.href))
             : hasChildren &&

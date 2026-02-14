@@ -363,7 +363,7 @@ export default function ProductPage({ data, forceLang }: ProductPageProps) {
                     {materialsTitle}
                   </h3>
                   <ul className="space-y-2">
-                    {data.materials.map((m, index) => (
+                    {data.materials?.map((m, index) => (
                       <li key={m.id || `material-${index}`} className="flex items-start gap-2">
                         <svg 
                           className="w-4 h-4 mt-0.5 flex-shrink-0" 
@@ -396,7 +396,7 @@ export default function ProductPage({ data, forceLang }: ProductPageProps) {
                     {collateralTitle}
                   </h3>
                   <ul className="space-y-2">
-                    {data.collateral.map((c, index) => (
+                    {data.collateral?.map((c, index) => (
                       <li key={c.id || `collateral-${index}`} className="flex items-start gap-2">
                         <svg 
                           className="w-4 h-4 mt-0.5 flex-shrink-0" 
@@ -429,7 +429,7 @@ export default function ProductPage({ data, forceLang }: ProductPageProps) {
                     {conditionsTitle}
                   </h3>
                   <ul className="space-y-2">
-                    {data.conditions.map((c, index) => (
+                    {data.conditions?.map((c, index) => (
                       <li key={c.id || `condition-${index}`} className="flex items-start gap-2">
                         <svg 
                           className="w-4 h-4 mt-0.5 flex-shrink-0" 
