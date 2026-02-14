@@ -437,6 +437,7 @@ export default function HeaderPage() {
 
   const fetchData = async () => {
     try {
+      console.log('📥 Header data татаж байна...', `${API_BASE_URL}`)
       const response = await fetch(`${API_BASE_URL}`)
       
       if (!response.ok) {
@@ -444,7 +445,17 @@ export default function HeaderPage() {
       }
 
       const data: HeaderData = await response.json()
+      console.log('✅ API response авлаа:', data)
+      console.log('  - Header ID:', data.id)
+      console.log('  - Menu count:', data.menus?.length || 0)
+      console.log('  - Has logo:', !!data.logo)
+
+      if (!data.menus || data.menus.length === 0) {
+        console.warn('⚠️ Header data-д цэс олдсонгүй, хоосон бүтэц ашигла')
+      }
+
       const { items, style } = transformApiToInternal(data)
+      console.log('✅ Transform complete:', items.length, 'items')
       
       setHeaderId(data.id || null)
       setMenuItems(items)
@@ -454,7 +465,7 @@ export default function HeaderPage() {
       
       setLoading(false)
     } catch (error) {
-      console.error('Error loading menu:', error)
+      console.error('❌ Error loading header:', error)
       loadDefaultData()
       setLoading(false)
     }

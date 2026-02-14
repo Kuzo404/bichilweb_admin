@@ -1,7 +1,6 @@
 'use client'
 import { useCallback, useState } from 'react'
 import { CloudArrowUpIcon, XMarkIcon, PhotoIcon } from '@heroicons/react/24/outline'
-import Image from 'next/image'
 
 interface ImageUploadProps {
   value?: string
@@ -87,16 +86,14 @@ export default function ImageUpload({ value, onChange, label }: ImageUploadProps
       {value ? (
         <div className="relative group rounded-xl overflow-hidden ring-1 ring-gray-200">
           <div className="relative w-full bg-gray-100" style={{ aspectRatio: '3/2' }}>
-            <Image
+            <img
               src={value}
               alt="Uploaded image"
-              fill
-              className="object-cover object-center w-full h-full"
-              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-              priority={true}
-              unoptimized={true}
+              className="w-full h-full object-cover object-center"
               onError={(e) => {
-                console.warn('Image load error:', value, e)
+                console.warn('Image load error:', value)
+                const img = e.target as HTMLImageElement
+                img.style.display = 'none'
               }}
             />
           </div>
