@@ -173,8 +173,28 @@ export default function HeaderPage() {
   const [isSavingLogo, setIsSavingLogo] = useState(false)
 
   useEffect(() => {
+    // Load logo history from localStorage
+    try {
+      const saved = localStorage.getItem('headerLogoHistory')
+      if (saved) {
+        setLogoHistory(JSON.parse(saved))
+      }
+    } catch (e) {
+      console.warn('Failed to load logo history:', e)
+    }
     fetchData()
   }, [])
+
+  // Save logo history to localStorage whenever it changes
+  useEffect(() => {
+    try {
+      if (logoHistory.length > 0) {
+        localStorage.setItem('headerLogoHistory', JSON.stringify(logoHistory))
+      }
+    } catch (e) {
+      console.warn('Failed to save logo history:', e)
+    }
+  }, [logoHistory])
 
   // ============================================================================
   // ХУУДСЫН СОНГОЛТУУДЫГ ӨГӨГДЛИЙН САНГААС ТАТАХ
@@ -451,6 +471,7 @@ export default function HeaderPage() {
       console.log('  - Header ID:', data.id)
       console.log('  - Menu count:', data.menus?.length || 0)
       console.log('  - Has logo:', !!data.logo)
+      console.log('  - Full menus structure:', JSON.stringify(data.menus, null, 2))
 
       if (!data.menus || data.menus.length === 0) {
         console.warn('⚠️ Header data-д цэс олдсонгүй, хоосон бүтэц ашигла')
