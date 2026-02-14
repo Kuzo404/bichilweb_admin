@@ -153,6 +153,7 @@ export async function POST(request: NextRequest) {
           font: typeof submenu.font === 'string' ? 0 : (submenu.font || 0),
           index: submenu.index ?? 0,
           visible: submenu.visible ?? 1,
+          // Submenu translations
           translations: (submenu.translations || []).map((t: { label: string; language_id: number }) => ({
             language: t.language_id,
             label: t.label || '',
@@ -167,8 +168,8 @@ export async function POST(request: NextRequest) {
 
         if (!subRes.ok) {
           const errText = await subRes.text()
-          console.error('Дэд цэс үүсгэхэд алдаа:', errText)
-          continue
+          console.error('Дэд цэс үүсгэхэд алдаа:', subPayload, errText)
+          throw new Error(`Дэд цэс үүсгэхэд алдаа: ${subRes.status} ${errText}`)
         }
 
         const subData = await subRes.json()
@@ -182,7 +183,7 @@ export async function POST(request: NextRequest) {
             font: tertiary.font || '',
             index: tertiary.index ?? 0,
             visible: tertiary.visible ?? 1,
-            // Tertiary serializer: language_id field-ийг ашиглана (source='language.id')
+            // Tertiary serializer: language_id field-ийг ашиглана
             translations: (tertiary.translations || []).map((t: { label: string; language_id: number }) => ({
               language_id: t.language_id,
               label: t.label || '',
@@ -197,7 +198,8 @@ export async function POST(request: NextRequest) {
 
           if (!terRes.ok) {
             const errText = await terRes.text()
-            console.error('3-р түвшний цэс үүсгэхэд алдаа:', errText)
+            console.error('3-р түвшний цэс үүсгэхэд алдаа:', terPayload, errText)
+            throw new Error(`3-р түвшний цэс үүсгэхэд алдаа: ${terRes.status} ${errText}`)
           }
         }
       }

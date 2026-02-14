@@ -1129,11 +1129,30 @@ export default function HeaderPage() {
                     value={headerStyle.logoUrl}
                     onChange={(url) => setHeaderStyle({ ...headerStyle, logoUrl: url })}
                   />
-                  {headerStyle.logoUrl && (
-                    <div className="mt-4 p-3 bg-white rounded-lg border border-slate-200">
-                      <p className="text-xs text-slate-600 mb-2">Урьдчилан харах:</p>
-                      <div className="flex items-center justify-center p-4 bg-slate-100 rounded-lg">
-                        <img src={headerStyle.logoUrl} alt="Logo" style={{ height: `${headerStyle.logoSize}px` }} className="w-auto object-contain" />
+                  {headerStyle.logoUrl && headerStyle.logoUrl !== '' && (
+                    <div className="mt-4 p-4 bg-white rounded-lg border border-slate-200">
+                      <p className="text-xs text-slate-600 font-medium mb-3">Урьдчилан харах:</p>
+                      <div className="flex items-center justify-center p-6 bg-slate-100 rounded-lg min-h-24">
+                        <div style={{ width: `${headerStyle.logoSize}px`, height: `${headerStyle.logoSize}px` }} className="flex items-center justify-center bg-white rounded-lg overflow-hidden">
+                          <img 
+                            src={headerStyle.logoUrl} 
+                            alt="Logo Preview" 
+                            style={{ 
+                              height: `${headerStyle.logoSize}px`,
+                              maxWidth: '100%',
+                              objectFit: 'contain'
+                            }} 
+                            className="w-full"
+                            onError={(e) => {
+                              console.warn('Logo preview error:', headerStyle.logoUrl)
+                              const img = e.target as HTMLImageElement
+                              img.style.display = 'none'
+                            }}
+                            onLoad={() => {
+                              console.log('Logo loaded successfully:', headerStyle.logoUrl)
+                            }}
+                          />
+                        </div>
                       </div>
                     </div>
                   )}

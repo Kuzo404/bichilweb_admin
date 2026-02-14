@@ -32,19 +32,29 @@ export default function ImageUpload({ value, onChange, label }: ImageUploadProps
         // Серверээс буцсан URL хадгалах
         const data = await res.json()
         const uploadedUrl = data.url || data.file_url || ''
-        onChange(uploadedUrl, file)
-        console.log('Зураг серверт амжилттай upload хийгдлээ:', uploadedUrl)
+        if (uploadedUrl) {
+          onChange(uploadedUrl, file)
+          console.log('Зураг серверт амжилттай upload хийгдлээ:', uploadedUrl)
+        } else {
+          throw new Error('Upload response байхгүй URL')
+        }
       } else {
-        // Upload endpoint байхгүй бол локал preview ашиглах
-        console.warn('Upload endpoint алдаа, локал preview ашиглана')
+        // Upload endpoint алдаа
+        const errData = await res.json().catch(() => ({}))
+        const errMsg = errData.error || `Upload алдаа: ${res.status} ${res.statusText}`
+        console.error('Upload endpoint алдаа:', errMsg)
+        
+        // Fallback: локал preview ашиглах
         const localUrl = URL.createObjectURL(file)
         onChange(localUrl, file)
+        alert(`Сервер рүү upload хийхэд алдаа гарлаа:\n${errMsg}\n\nЛокал preview ашиглана.`)
       }
     } catch (error) {
       // Алдаа гарвал локал preview ашиглах
       console.warn('Зураг upload хийхэд алдаа:', error)
       const localUrl = URL.createObjectURL(file)
       onChange(localUrl, file)
+      alert(`Зураг upload хийхэд алдаа гарлаа:\n${error instanceof Error ? error.message : 'Unknown error'}\n\nЛокал preview ашиглана.`)
     } finally {
       setUploading(false)
     }
@@ -76,13 +86,18 @@ export default function ImageUpload({ value, onChange, label }: ImageUploadProps
 
       {value ? (
         <div className="relative group rounded-xl overflow-hidden ring-1 ring-gray-200">
-          <div className="relative h-80 w-full bg-gray-100">
+          <div className="relative w-full bg-gray-100" style={{ aspectRatio: '3/2' }}>
             <Image
               src={value}
               alt="Uploaded image"
               fill
-              className="object-cover"
-              unoptimized
+              className="object-cover object-center w-full h-full"
+              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+              priority={true}
+              unoptimized={true}
+              onError={(e) => {
+                console.warn('Image load error:', value, e)
+              }}
             />
           </div>
           <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
