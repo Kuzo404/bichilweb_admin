@@ -1,0 +1,29 @@
+PUT /api/admin/floating-menu/
+{
+  "categories": [
+    {
+      "id": "uuid",
+      "name": { "mn": "Зээл", "en": "Loan" },
+      "order": 1,
+      "iconSvg": "<svg>...</svg>",
+      "iconUrl": null,
+      "color": "#3b82f6",
+      "font": "font-sans",
+      "bgColor": "#ffffff",
+      "textColor": "#0f172a"
+    }
+  ],
+  "items": [
+    {
+      "id": "uuid",
+      "categoryId": "uuid",
+      "label": { "mn": "Зээлийн хүсэлт", "en": "Loan Application" },
+      "href": "/products/loan-application",
+      "order": 1,
+      "isActive": true,
+      "font": "font-sans",
+      "bgColor": "#ffffff",
+      "textColor": "#374151"
+    }
+  ]
+}
