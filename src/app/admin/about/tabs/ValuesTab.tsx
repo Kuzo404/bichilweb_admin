@@ -425,10 +425,15 @@ export default function ValuesTab() {
 
   const handleConfirmDelete = async () => {
     if (pendingDeleteId) {
-      await handleDeleteValue(pendingDeleteId)
-      handleCloseEditModal()
-      setDeleteConfirmOpen(false)
-      setPendingDeleteId(null)
+      try {
+        await handleDeleteValue(pendingDeleteId)
+        handleCloseEditModal()
+      } catch (e) {
+        console.error('Delete failed:', e)
+      } finally {
+        setDeleteConfirmOpen(false)
+        setPendingDeleteId(null)
+      }
     }
   }
 
@@ -530,15 +535,26 @@ export default function ValuesTab() {
                   }} className="leading-tight">
                     {previewLang === 'mn' ? value.desc_mn : value.desc_en}
                   </h3>
-                  <button
-                    onClick={() => handleEditValue(value.id)}
-                    className="mt-6 inline-flex items-center gap-2 text-teal-600 hover:text-teal-700 text-sm font-semibold uppercase tracking-wide hover:gap-3 transition-all"
-                  >
-                    Засах
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
-                  </button>
+                  <div className="mt-6 flex items-center gap-4">
+                    <button
+                      onClick={() => handleEditValue(value.id)}
+                      className="inline-flex items-center gap-2 text-teal-600 hover:text-teal-700 text-sm font-semibold uppercase tracking-wide hover:gap-3 transition-all"
+                    >
+                      Засах
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </button>
+                    <button
+                      onClick={() => handleDeleteClick(value.id)}
+                      className="inline-flex items-center gap-2 text-red-500 hover:text-red-700 text-sm font-semibold uppercase tracking-wide transition-all"
+                    >
+                      Устгах
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                    </button>
+                  </div>
                 </div>
                 {value.image_url && (
                   <div className={`relative overflow-hidden rounded-xl border border-gray-200 group ${value.id === 'mission' ? 'md:order-1' : ''}`} style={{ aspectRatio: value.image_aspect_ratio || '16 / 9' }}>
