@@ -275,7 +275,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ id: headerId, logo: body.logo, active: body.active ?? 1, menus: [], styles: [] }, { status: 200 })
     }
     
-    const updatedData = updatedRes.json()
+    const updatedData = await updatedRes.json()
     console.log('✅ Шинэчлэгдсэн header буцаалаа:', JSON.stringify(updatedData, null, 2))
 
     return NextResponse.json(updatedData, { status: 200 })

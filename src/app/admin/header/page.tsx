@@ -567,12 +567,6 @@ export default function HeaderPage() {
   const handleSaveAll = async () => {
     try {
       setSaving(true)
-      
-      // Өгөгдлийн санд хадгалахын өмнө validate хийх
-      if (menuItems.length === 0) {
-        alert('Хамгийн дээд нэг цэс нэмэх шаардлагатай.')
-        return
-      }
 
       const apiData = transformInternalToApi()
       
@@ -670,6 +664,7 @@ export default function HeaderPage() {
 
   const handleDelete = async (item: MenuItem) => {
     if (!confirm('Устгах уу? Дэд цэсүүд ч бас устгагдана.')) return
+    
     const idsToDelete = new Set<string>()
     const collectIds = (parentId: string) => {
       idsToDelete.add(parentId)
@@ -677,29 +672,107 @@ export default function HeaderPage() {
     }
     collectIds(item.id)
 
-    // Өгөгдлийн сангаас устгах (temp- биш бол)
-    const dbId = item.id.replace(/^(menu|submenu|tertiary)-/, '')
-    const isTemp = item.id.startsWith('temp-')
-    if (!isTemp && dbId) {
-      try {
-        const type = item.id.startsWith('menu-') ? 'menu' 
-                   : item.id.startsWith('submenu-') ? 'submenu' 
-                   : item.id.startsWith('tertiary-') ? 'tertiary' 
-                   : null
-        if (type) {
-          const res = await fetch(`${API_BASE_URL}?type=${type}&id=${dbId}`, { method: 'DELETE' })
-          if (res.ok) {
-            console.log(`✅ ${type} ID:${dbId} өгөгдлийн сангаас устгагдлаа`)
-          } else {
-            console.error(`❌ ${type} ID:${dbId} устгахад алдаа:`, await res.text())
-          }
-        }
-      } catch (error) {
-        console.error('DB-ээс устгахад алдаа:', error)
-      }
-    }
+    // Шинэ жагсаалтыг бэлтгэх (устгасны дараа)
+    const remainingItems = menuItems.filter(i => !idsToDelete.has(i.id))
+    setMenuItems(remainingItems)
 
-    setMenuItems(prev => prev.filter(i => !idsToDelete.has(i.id)))
+    // Өгөгдлийн сангаас автоматаар устгах (full save хийнэ)
+    try {
+      setSaving(true)
+      
+      // Үлдсэн цэснүүдийг API формат руу хөрвүүлэх
+      const rootItems = remainingItems.filter(i => !i.parentId).sort((a, b) => a.order - b.order)
+      const menus: Menu[] = rootItems.map(rootItem => {
+        const submenus: Submenu[] = remainingItems
+          .filter(i => i.parentId === rootItem.id)
+          .sort((a, b) => a.order - b.order)
+          .map(submenuItem => {
+            const tertiaryMenus: TertiaryMenu[] = remainingItems
+              .filter(i => i.parentId === submenuItem.id)
+              .sort((a, b) => a.order - b.order)
+              .map(tertiaryItem => ({
+                id: tertiaryItem.id ? parseInt(tertiaryItem.id.replace('tertiary-', '')) : undefined,
+                path: tertiaryItem.href,
+                font: tertiaryItem.font || 'font-sans',
+                index: tertiaryItem.order,
+                visible: tertiaryItem.isActive ? 1 : 0,
+                translations: [
+                  { label: tertiaryItem.title_en, language_id: 1 },
+                  { label: tertiaryItem.title_mn, language_id: 2 },
+                ],
+              }))
+            return {
+              id: submenuItem.id ? parseInt(submenuItem.id.replace('submenu-', '')) : undefined,
+              path: submenuItem.href,
+              font: submenuItem.font || 'font-sans',
+              index: submenuItem.order,
+              visible: submenuItem.isActive ? 1 : 0,
+              translations: [
+                { label: submenuItem.title_en, language_id: 1 },
+                { label: submenuItem.title_mn, language_id: 2 },
+              ],
+              tertiary_menus: tertiaryMenus,
+            }
+          })
+        return {
+          id: rootItem.id ? parseInt(rootItem.id.replace('menu-', '')) : undefined,
+          path: rootItem.href,
+          font: rootItem.font || 'font-sans',
+          index: rootItem.order,
+          visible: rootItem.isActive ? 1 : 0,
+          translations: [
+            { label: rootItem.title_en, language_id: 1 },
+            { label: rootItem.title_mn, language_id: 2 },
+          ],
+          submenus,
+        }
+      })
+
+      const apiData: HeaderData = {
+        id: headerId || undefined,
+        logo: headerStyle.logoUrl,
+        active: 1,
+        styles: [{
+          id: 1,
+          bgcolor: headerStyle.backgroundColor,
+          fontcolor: headerStyle.textColor,
+          hovercolor: headerStyle.hoverColor,
+          height: parseInt(headerStyle.height) || 80,
+          sticky: headerStyle.isSticky ? 1 : 0,
+          max_width: headerStyle.maxWidth || '1240px',
+          logo_size: headerStyle.logoSize || 44,
+        }],
+        menus,
+      }
+
+      console.log('🗑️ Цэс устгаад DB руу хадгалж байна...', JSON.stringify(apiData.menus?.length))
+      
+      const response = await fetch(`${API_BASE_URL}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(apiData)
+      })
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error('❌ Устгаад хадгалахад алдаа:', errorText)
+        throw new Error(`Save failed: ${response.status}`)
+      }
+
+      const result = await response.json()
+      console.log('✅ Устгалт амжилттай хадгалагдлаа:', result)
+      
+      setOriginalMenuItems(JSON.parse(JSON.stringify(remainingItems)))
+      setSaveSuccess(true)
+      setTimeout(() => setSaveSuccess(false), 3000)
+    } catch (error) {
+      console.error('Устгаад хадгалахад алдаа:', error)
+      alert(`Устгахад алдаа гарлаа. Дахин оролдоно уу.`)
+      // Reload to get correct state from DB
+      fetchData()
+    } finally {
+      setSaving(false)
+    }
   }
 
   const handleEdit = (item: MenuItem) => {
