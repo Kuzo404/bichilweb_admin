@@ -287,3 +287,63 @@ export async function POST(request: NextRequest) {
     )
   }
 }
+
+// ============================================================================
+// DELETE - Цэсийг өгөгдлийн сангаас устгах
+// ============================================================================
+// Query params: type (menu|submenu|tertiary), id (number)
+// Жишээ: DELETE /api/admin/header-menu?type=menu&id=5
+// ============================================================================
+export async function DELETE(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url)
+    const type = searchParams.get('type') // menu | submenu | tertiary
+    const id = searchParams.get('id')
+
+    if (!type || !id) {
+      return NextResponse.json(
+        { error: 'type болон id параметр шаардлагатай' },
+        { status: 400 }
+      )
+    }
+
+    const endpointMap: Record<string, string> = {
+      'menu': 'header-menu',
+      'submenu': 'header-submenu',
+      'tertiary': 'header-tertiary',
+    }
+
+    const endpoint = endpointMap[type]
+    if (!endpoint) {
+      return NextResponse.json(
+        { error: `Тодорхойгүй төрөл: ${type}. menu, submenu, tertiary байх ёстой.` },
+        { status: 400 }
+      )
+    }
+
+    console.log(`🗑️ ${type} цэс устгаж байна... ID: ${id}`)
+
+    // CASCADE устгалт: menu → submenus → tertiary_menus автоматаар устгагдана
+    const delRes = await fetch(`${BACKEND_URL}/${endpoint}/${id}/`, {
+      method: 'DELETE',
+    })
+
+    if (!delRes.ok && delRes.status !== 404) {
+      const errText = await delRes.text()
+      console.error(`❌ ${type} устгахад алдаа:`, delRes.status, errText)
+      return NextResponse.json(
+        { error: `Устгахад алдаа: ${delRes.status} ${errText}` },
+        { status: delRes.status }
+      )
+    }
+
+    console.log(`✅ ${type} ID:${id} устгагдлаа`)
+    return NextResponse.json({ success: true, deleted: { type, id: Number(id) } })
+  } catch (error) {
+    console.error('Цэс устгахад алдаа:', error)
+    return NextResponse.json(
+      { error: `Устгахад алдаа: ${error instanceof Error ? error.message : 'Тодорхойгүй'}` },
+      { status: 500 }
+    )
+  }
+}

@@ -668,7 +668,7 @@ export default function HeaderPage() {
     setSaving(false)
   }
 
-  const handleDelete = (item: MenuItem) => {
+  const handleDelete = async (item: MenuItem) => {
     if (!confirm('Устгах уу? Дэд цэсүүд ч бас устгагдана.')) return
     const idsToDelete = new Set<string>()
     const collectIds = (parentId: string) => {
@@ -676,6 +676,29 @@ export default function HeaderPage() {
       menuItems.filter(i => i.parentId === parentId).forEach(child => collectIds(child.id))
     }
     collectIds(item.id)
+
+    // Өгөгдлийн сангаас устгах (temp- биш бол)
+    const dbId = item.id.replace(/^(menu|submenu|tertiary)-/, '')
+    const isTemp = item.id.startsWith('temp-')
+    if (!isTemp && dbId) {
+      try {
+        const type = item.id.startsWith('menu-') ? 'menu' 
+                   : item.id.startsWith('submenu-') ? 'submenu' 
+                   : item.id.startsWith('tertiary-') ? 'tertiary' 
+                   : null
+        if (type) {
+          const res = await fetch(`${API_BASE_URL}?type=${type}&id=${dbId}`, { method: 'DELETE' })
+          if (res.ok) {
+            console.log(`✅ ${type} ID:${dbId} өгөгдлийн сангаас устгагдлаа`)
+          } else {
+            console.error(`❌ ${type} ID:${dbId} устгахад алдаа:`, await res.text())
+          }
+        }
+      } catch (error) {
+        console.error('DB-ээс устгахад алдаа:', error)
+      }
+    }
+
     setMenuItems(prev => prev.filter(i => !idsToDelete.has(i.id)))
   }
 
@@ -861,7 +884,7 @@ export default function HeaderPage() {
               </div>
             </div>
 
-            {/* Preview */}
+            {/* Preview - bichilweb frontend-тэй яг адилхан */}
             <div className="rounded-2xl overflow-visible border border-slate-200 bg-gradient-to-b from-slate-100 to-slate-50">
               <div className="px-4 py-2.5 border-b border-slate-200 flex items-center justify-between bg-white/50">
                 <div className="flex items-center gap-2">
@@ -892,87 +915,124 @@ export default function HeaderPage() {
               </div>
               
               <div className="p-6 pb-32 overflow-visible min-h-[200px]">
+                {/* Floating header - яг bichilweb frontend шиг */}
                 <div 
-                  className="rounded-2xl shadow-lg border border-white/50 mx-auto"
-                  style={{ backgroundColor: headerStyle.backgroundColor, maxWidth: headerStyle.maxWidth }}
+                  className="rounded-2xl border bg-white/70 backdrop-blur-lg shadow-[0_4px_24px_rgba(0,0,0,0.08)] border-white/40 mx-auto"
+                  style={{ maxWidth: headerStyle.maxWidth }}
                 >
-                  <div className="px-6 flex items-center justify-between" style={{ height: headerStyle.height }}>
-                    {/* Logo */}
-                    <div className="flex items-center gap-3">
-                      {headerStyle.logoUrl ? (
-                        <img src={headerStyle.logoUrl} alt="Logo" style={{ height: `${headerStyle.logoSize}px` }} className="w-auto object-contain" />
-                      ) : (
-                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-teal-500 to-teal-600 flex items-center justify-center text-white font-bold text-sm shadow-md">
-                          BG
-                        </div>
-                      )}
-                    </div>
-                    
-                    {/* Navigation */}
-                    <nav className="flex items-center gap-1 relative">
-                      {rootItems.filter(i => i.isActive).map(item => {
-                        const children = getChildren(item.id).filter(c => c.isActive)
-                        const isHovered = previewHover === item.id
-                        
-                        return (
-                          <div 
-                            key={item.id}
-                            className="relative"
-                            onMouseEnter={() => setPreviewHover(item.id)}
-                            onMouseLeave={() => setPreviewHover(null)}
-                          >
-                            <button 
-                              className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                                isHovered ? 'bg-gray-100/80' : 'hover:bg-gray-50'
-                              } ${item.font || 'font-sans'}`}
-                              style={{ color: item.textColor || (isHovered ? headerStyle.hoverColor : headerStyle.textColor) }}
-                            >
-                              {previewLanguage === 'mn' ? item.title_mn : item.title_en}
-                              {children.length > 0 && (
-                                <svg className={`w-4 h-4 transition-transform ${isHovered ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                                </svg>
-                              )}
-                            </button>
-                            
-                            {/* Dropdown */}
-                            {isHovered && children.length > 0 && (
-                              <div className="absolute top-full left-0 pt-2 min-w-[240px] z-[9999]">
-                                <div className="bg-white rounded-xl shadow-2xl border border-gray-200 py-2">
-                                  {children.map(child => {
-                                    const grandChildren = getChildren(child.id).filter(c => c.isActive)
-                                    
-                                    return (
-                                      <div key={child.id} className="relative group/sub">
-                                        <div className={`flex items-center justify-between px-4 py-2.5 mx-1 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors ${child.font || 'font-sans'}`}>
-                                          <span className="text-sm font-medium">{previewLanguage === 'mn' ? child.title_mn : child.title_en}</span>
-                                          {grandChildren.length > 0 && <ChevronRightIcon className="h-4 w-4 text-gray-400" />}
-                                        </div>
-                                        
-                                        {grandChildren.length > 0 && (
-                                          <div className="absolute left-full top-0 pl-1 min-w-[200px] hidden group-hover/sub:block z-[10000]">
-                                            <div className="bg-white rounded-xl shadow-2xl border border-gray-200 py-2">
-                                              {grandChildren.map(gc => (
-                                                <div key={gc.id} className={`px-4 py-2.5 mx-1 rounded-lg text-sm hover:bg-gray-50 cursor-pointer ${gc.font || 'font-sans'}`}>
-                                                  {previewLanguage === 'mn' ? gc.title_mn : gc.title_en}
-                                                </div>
-                                              ))}
-                                            </div>
-                                          </div>
-                                        )}
-                                      </div>
-                                    )
-                                  })}
-                                </div>
-                              </div>
+                  <div className="px-4 sm:px-5">
+                    <div className="flex items-center justify-between h-12 lg:h-14">
+
+                      {/* Logo + Desktop Nav */}
+                      <div className="flex items-center gap-5 lg:gap-6">
+                        {/* Logo */}
+                        <div className="flex items-center">
+                          <div className="flex items-center justify-center" style={{ width: `${Math.round(headerStyle.logoSize * 0.8)}px`, height: `${Math.round(headerStyle.logoSize * 0.8)}px` }}>
+                            {headerStyle.logoUrl ? (
+                              <img 
+                                src={headerStyle.logoUrl} 
+                                alt="Logo" 
+                                style={{ width: `${Math.round(headerStyle.logoSize * 0.8)}px`, height: `${Math.round(headerStyle.logoSize * 0.8)}px` }} 
+                                className="object-cover" 
+                              />
+                            ) : (
+                              <img 
+                                src="/images/logo.jpg" 
+                                alt="Default Logo" 
+                                style={{ width: `${Math.round(headerStyle.logoSize * 0.8)}px`, height: `${Math.round(headerStyle.logoSize * 0.8)}px` }} 
+                                className="object-cover"
+                                onError={(e) => {
+                                  const img = e.target as HTMLImageElement
+                                  img.style.display = 'none'
+                                  img.parentElement!.innerHTML = '<div class="w-8 h-8 rounded-full bg-gradient-to-br from-teal-500 to-teal-600 flex items-center justify-center text-white font-bold text-xs shadow-md">BG</div>'
+                                }}
+                              />
                             )}
                           </div>
-                        )
-                      })}
-                    </nav>
-                    
-                    <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 text-xs font-medium" style={{ color: headerStyle.textColor }}>
-                      <span>🇲🇳</span><span>MN</span>
+                        </div>
+
+                        {/* Navigation */}
+                        <nav className="flex items-center gap-0.5">
+                          {rootItems.filter(i => i.isActive).map(item => {
+                            const children = getChildren(item.id).filter(c => c.isActive)
+                            const isHovered = previewHover === item.id
+                            
+                            return (
+                              <div 
+                                key={item.id}
+                                className="relative"
+                                onMouseEnter={() => setPreviewHover(item.id)}
+                                onMouseLeave={() => setPreviewHover(null)}
+                              >
+                                <button 
+                                  className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                                    isHovered
+                                      ? 'bg-gray-100 text-teal-600'
+                                      : 'text-gray-700 hover:bg-gray-50 hover:text-teal-600'
+                                  } ${children.length === 0 && item.href === '#' ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                >
+                                  {previewLanguage === 'mn' ? item.title_mn : item.title_en}
+                                  {children.length > 0 && (
+                                    <svg className={`w-3 h-3 transition-transform ${isHovered ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                    </svg>
+                                  )}
+                                </button>
+                                
+                                {/* 2-р түвшний dropdown */}
+                                {isHovered && children.length > 0 && (
+                                  <div className="absolute top-full left-0 pt-1.5 w-56 z-[9999]">
+                                    <div className="bg-white rounded-xl shadow-xl border border-gray-100 py-1.5">
+                                      {children.map(child => {
+                                        const grandChildren = getChildren(child.id).filter(c => c.isActive)
+                                        
+                                        return (
+                                          <div key={child.id} className="relative group/sub">
+                                            <div className={`flex items-center justify-between px-3 py-2 mx-1 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors`}>
+                                              <span className="text-xs font-medium text-gray-900">{previewLanguage === 'mn' ? child.title_mn : child.title_en}</span>
+                                              {grandChildren.length > 0 && (
+                                                <svg className="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                                </svg>
+                                              )}
+                                            </div>
+                                            
+                                            {/* 3-р түвшний dropdown */}
+                                            {grandChildren.length > 0 && (
+                                              <div className="absolute left-full top-0 pl-1.5 w-48 hidden group-hover/sub:block z-[10000]">
+                                                <div className="bg-white rounded-xl shadow-xl border border-gray-100 py-1.5">
+                                                  {grandChildren.map(gc => (
+                                                    <div key={gc.id} className="px-3 py-2 mx-1 rounded-lg text-xs text-gray-700 hover:bg-gray-50 hover:text-teal-600 cursor-pointer">
+                                                      {previewLanguage === 'mn' ? gc.title_mn : gc.title_en}
+                                                    </div>
+                                                  ))}
+                                                </div>
+                                              </div>
+                                            )}
+                                          </div>
+                                        )
+                                      })}
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            )
+                          })}
+                        </nav>
+                      </div>
+
+                      {/* Right Side - Language Selector */}
+                      <div className="flex items-center gap-1.5">
+                        <button className="flex items-center gap-1 px-2 py-1.5 rounded-lg border border-gray-200 hover:border-gray-300 hover:bg-gray-50 transition-colors">
+                          <svg className="w-3.5 h-3.5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
+                          </svg>
+                          <span className="text-xs font-medium text-gray-700">{previewLanguage === 'mn' ? 'MN' : 'EN'}</span>
+                          <svg className="w-2.5 h-2.5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                          </svg>
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
