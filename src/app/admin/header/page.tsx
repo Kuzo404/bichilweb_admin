@@ -618,6 +618,19 @@ export default function HeaderPage() {
         console.warn('⚠️ Header ID эсвэл logo байхгүй')
       }
 
+      // ⚠️ Хоосон цэстэй хадгалахаас сэргийлэх
+      if (!apiData.menus || apiData.menus.length === 0) {
+        const confirmed = confirm(
+          '⚠️ Анхааруулга: Цэс хоосон байна!\n\n'
+          + 'Хадгалбал одоо байгаа бүх цэснүүд устгагдана.\n'
+          + 'Үргэлжлүүлэх үү?'
+        )
+        if (!confirmed) {
+          setSaving(false)
+          return
+        }
+      }
+
       console.log('📤 Өгөгдлийн санд хадгалж байна...', menuItems.length, 'цэс')
       
       const response = await fetch(`${API_BASE_URL}`, {

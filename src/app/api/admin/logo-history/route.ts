@@ -7,6 +7,7 @@ import { getPool } from '@/lib/db'
 // Хүснэгт үүсгэх (байхгүй бол)
 async function ensureTable() {
   const pool = getPool()
+  if (!pool) return false
   await pool.query(`
     CREATE TABLE IF NOT EXISTS header_logo_history (
       id BIGSERIAL PRIMARY KEY,
@@ -14,13 +15,16 @@ async function ensureTable() {
       created_at TIMESTAMPTZ DEFAULT NOW()
     )
   `)
+  return true
 }
 
 // GET - Бүх логоны түүхийг авах
 export async function GET() {
   try {
-    await ensureTable()
+    const ok = await ensureTable()
+    if (!ok) return NextResponse.json([])
     const pool = getPool()
+    if (!pool) return NextResponse.json([])
     const result = await pool.query(
       'SELECT id, url, created_at FROM header_logo_history ORDER BY created_at DESC LIMIT 20'
     )
@@ -34,13 +38,15 @@ export async function GET() {
 // POST - Шинэ лого нэмэх
 export async function POST(request: NextRequest) {
   try {
-    await ensureTable()
+    const ok = await ensureTable()
+    if (!ok) return NextResponse.json({ error: 'DATABASE_URL тохируулаагүй' }, { status: 503 })
     const { url } = await request.json()
     if (!url) {
       return NextResponse.json({ error: 'URL шаардлагатай' }, { status: 400 })
     }
 
     const pool = getPool()
+    if (!pool) return NextResponse.json({ error: 'DB холболтгүй' }, { status: 503 })
     // Давхардахгүй байлгах
     const existing = await pool.query('SELECT id FROM header_logo_history WHERE url = $1', [url])
     if (existing.rows.length > 0) {
@@ -61,7 +67,8 @@ export async function POST(request: NextRequest) {
 // DELETE - Логог түүхээс устгах
 export async function DELETE(request: NextRequest) {
   try {
-    await ensureTable()
+    const ok = await ensureTable()
+    if (!ok) return NextResponse.json({ error: 'DB холболтгүй' }, { status: 503 })
     const { searchParams } = new URL(request.url)
     const id = searchParams.get('id')
     if (!id) {
@@ -69,6 +76,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     const pool = getPool()
+    if (!pool) return NextResponse.json({ error: 'DB холболтгүй' }, { status: 503 })
     await pool.query('DELETE FROM header_logo_history WHERE id = $1', [Number(id)])
     return NextResponse.json({ success: true })
   } catch (error) {

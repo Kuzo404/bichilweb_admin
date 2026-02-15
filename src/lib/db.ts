@@ -2,9 +2,14 @@ import { Pool } from 'pg';
 
 let pool: Pool | null = null;
 
-export function getPool(): Pool {
+/**
+ * PostgreSQL Pool авах.
+ * DATABASE_URL байхгүй бол null буцаана (throw хийхгүй).
+ */
+export function getPool(): Pool | null {
     if (!process.env.DATABASE_URL) {
-        throw new Error('DATABASE_URL environment variable is not defined');
+        console.warn('⚠️ DATABASE_URL тохируулаагүй байна — DB холболт алгасав');
+        return null;
     }
     
     if (!pool) {

@@ -111,7 +111,14 @@ export async function POST(request: NextRequest) {
       console.log('✅ Header үүсгэгдлээ. ID:', headerId)
     }
 
-    // ── 2. Хуучин цэснүүдийг ҮРГЭЛЖ устгах ──
+    // ── 2. Хуучин цэснүүдийг устгах (шинэ цэснүүд байгаа үед л) ──
+    // ⚠️ Хамгаалалт: Хэрвээ шинэ цэс 0 бол хуучныг устгахгүй (санамсаргүй устгалтаас сэргийлнэ)
+    const hasNewMenus = body.menus && body.menus.length > 0
+    if (!hasNewMenus) {
+      console.log('⚠️ Шинэ цэс байхгүй — хуучин цэснүүдийг хадгалж үлдээв')
+    }
+
+    if (hasNewMenus) {
     console.log('🗑️ Хуучин цэснүүдийг устгаж байна...')
     const existingRes = await fetch(`${BACKEND_URL}/headers/${headerId}/`, {
       headers: { 'Accept': 'application/json' },
@@ -139,6 +146,7 @@ export async function POST(request: NextRequest) {
     } else {
       console.log('  ℹ️ Хуучин цэс олдсонгүй')
     }
+    } // hasNewMenus if блок хаалт
 
     // ── 3. Шинэ цэснүүдийг үүсгэх ──
     if (body.menus && body.menus.length > 0) {

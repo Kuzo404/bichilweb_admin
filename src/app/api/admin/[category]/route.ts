@@ -9,6 +9,7 @@ export async function GET(
 
     try {
         const pool = getPool();
+        if (!pool) return NextResponse.json({ error: 'DB холболтгүй' }, { status: 503 });
         const client = await pool.connect();
 
         let result;
@@ -117,6 +118,7 @@ export async function POST(
 
     try {
         const pool = getPool();
+        if (!pool) return NextResponse.json({ error: 'DB холболтгүй' }, { status: 503 });
         const client = await pool.connect();
         let result;
 
@@ -203,6 +205,7 @@ export async function PUT(
 
     try {
         const pool = getPool();
+        if (!pool) return NextResponse.json({ error: 'DB холболтгүй' }, { status: 503 });
         const client = await pool.connect();
         let result;
 
@@ -267,6 +270,7 @@ export async function DELETE(
 
     try {
         const pool = getPool();
+        if (!pool) return NextResponse.json({ error: 'DB холболтгүй' }, { status: 503 });
         const client = await pool.connect();
         let result;
 

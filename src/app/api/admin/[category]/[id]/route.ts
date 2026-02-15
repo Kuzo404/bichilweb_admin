@@ -11,6 +11,7 @@ export async function PUT(
 
     try {
         const pool = getPool();
+        if (!pool) return NextResponse.json({ error: 'DB холболтгүй' }, { status: 503 });
         const client = await pool.connect();
         const result = await client.query(
             'UPDATE admin_items SET title = $1, image_url = $2, payload = $3, updated_at = now() WHERE id = $4 AND category = $5 RETURNING *',
@@ -37,6 +38,7 @@ export async function DELETE(
 
     try {
         const pool = getPool();
+        if (!pool) return NextResponse.json({ error: 'DB холболтгүй' }, { status: 503 });
         const client = await pool.connect();
         const result = await client.query(
             'DELETE FROM admin_items WHERE id = $1 AND category = $2 RETURNING *',
