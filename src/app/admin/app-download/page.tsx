@@ -52,6 +52,7 @@ interface AppDownloadData {
   googlebuttonfontcolor: string
   active: boolean
   layout: string
+  mobile_layout: string
   features_layout: string
   titles: TitleItem[]
   lists: ListItem[]
@@ -72,6 +73,7 @@ const defaultData: AppDownloadData = {
   googlebuttonfontcolor: '#334155',
   active: true,
   layout: 'standard',
+  mobile_layout: 'image-top',
   features_layout: 'vertical',
   titles: [],
   lists: [],
@@ -93,6 +95,11 @@ const iconDisplay: Record<string, string> = {
 const layoutOptions = [
   { value: 'standard', label: 'Стандарт', desc: 'Текст зүүн, Зураг баруун' },
   { value: 'reverse', label: 'Эсрэг', desc: 'Зураг зүүн, Текст баруун' },
+  { value: 'text-top', label: 'Текст дээр', desc: 'Текст дээр, Зураг доор' },
+  { value: 'image-top', label: 'Зураг дээр', desc: 'Зураг дээр, Текст доор' },
+]
+
+const mobileLayoutOptions = [
   { value: 'text-top', label: 'Текст дээр', desc: 'Текст дээр, Зураг доор' },
   { value: 'image-top', label: 'Зураг дээр', desc: 'Зураг дээр, Текст доор' },
 ]
@@ -133,6 +140,7 @@ export default function AppDownloadPage() {
 
   const normalizeData = (item: any): AppDownloadData => {
     item.layout = item.layout || 'standard'
+    item.mobile_layout = item.mobile_layout || 'image-top'
     item.features_layout = item.features_layout || 'vertical'
     if (item.lists) {
       item.lists = item.lists.map((l: any) => ({ ...l, icon_url: l.icon_url || '' }))
@@ -186,6 +194,7 @@ export default function AppDownloadPage() {
       formData.append('googlebuttonfontcolor', data.googlebuttonfontcolor || '#334155')
       formData.append('active', String(data.active))
       formData.append('layout', data.layout || 'standard')
+      formData.append('mobile_layout', data.mobile_layout || 'image-top')
       formData.append('features_layout', data.features_layout || 'vertical')
       formData.append('titles', JSON.stringify(data.titles))
       formData.append('lists', JSON.stringify(data.lists))
@@ -346,58 +355,106 @@ export default function AppDownloadPage() {
               </div>
             </div>
 
-            {/* Layout Direction */}
-            <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-4">
+            {/* Layout Direction - Desktop & Mobile */}
+            <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-5">
               <h3 className="font-semibold text-gray-900 flex items-center gap-2">
                 <ArrowsRightLeftIcon className="w-5 h-5" /> Текст, зурагны байршил
               </h3>
-              <p className="text-xs text-gray-500">Desktop: зүүн/баруун эсвэл дээр/доор</p>
-              <div className="grid grid-cols-2 gap-3">
-                {layoutOptions.map(opt => (
-                  <button
-                    key={opt.value}
-                    onClick={() => setData({ ...data, layout: opt.value })}
-                    className={`p-4 rounded-xl border-2 transition-all text-left ${
-                      data.layout === opt.value
-                        ? 'border-blue-500 bg-blue-50 shadow-sm'
-                        : 'border-gray-200 hover:border-gray-300 bg-white'
-                    }`}
-                  >
-                    <div className="flex gap-2 mb-2">
-                      {opt.value === 'standard' ? (
-                        <>
-                          <div className="flex-1 h-10 bg-blue-200 rounded flex items-center justify-center text-[10px] text-blue-700 font-medium">Текст</div>
-                          <div className="w-8 h-10 bg-gray-200 rounded flex items-center justify-center">
-                            <DevicePhoneMobileIcon className="w-4 h-4 text-gray-400" />
+
+              {/* Desktop */}
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded font-medium">🖥 Desktop</span>
+                  <span className="text-xs text-gray-400">Гар утаснаас бусад бүх төхөөрөмж</span>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  {layoutOptions.map(opt => (
+                    <button
+                      key={opt.value}
+                      onClick={() => setData({ ...data, layout: opt.value })}
+                      className={`p-3 rounded-xl border-2 transition-all text-left ${
+                        data.layout === opt.value
+                          ? 'border-blue-500 bg-blue-50 shadow-sm'
+                          : 'border-gray-200 hover:border-gray-300 bg-white'
+                      }`}
+                    >
+                      <div className="flex gap-2 mb-1.5">
+                        {opt.value === 'standard' ? (
+                          <>
+                            <div className="flex-1 h-8 bg-blue-200 rounded flex items-center justify-center text-[9px] text-blue-700 font-medium">Текст</div>
+                            <div className="w-6 h-8 bg-gray-200 rounded flex items-center justify-center">
+                              <DevicePhoneMobileIcon className="w-3 h-3 text-gray-400" />
+                            </div>
+                          </>
+                        ) : opt.value === 'reverse' ? (
+                          <>
+                            <div className="w-6 h-8 bg-gray-200 rounded flex items-center justify-center">
+                              <DevicePhoneMobileIcon className="w-3 h-3 text-gray-400" />
+                            </div>
+                            <div className="flex-1 h-8 bg-blue-200 rounded flex items-center justify-center text-[9px] text-blue-700 font-medium">Текст</div>
+                          </>
+                        ) : opt.value === 'text-top' ? (
+                          <div className="flex flex-col gap-0.5 w-full">
+                            <div className="h-5 bg-blue-200 rounded flex items-center justify-center text-[9px] text-blue-700 font-medium">Текст</div>
+                            <div className="h-5 bg-gray-200 rounded flex items-center justify-center">
+                              <DevicePhoneMobileIcon className="w-2.5 h-2.5 text-gray-400" />
+                            </div>
                           </div>
-                        </>
-                      ) : opt.value === 'reverse' ? (
-                        <>
-                          <div className="w-8 h-10 bg-gray-200 rounded flex items-center justify-center">
-                            <DevicePhoneMobileIcon className="w-4 h-4 text-gray-400" />
+                        ) : (
+                          <div className="flex flex-col gap-0.5 w-full">
+                            <div className="h-5 bg-gray-200 rounded flex items-center justify-center">
+                              <DevicePhoneMobileIcon className="w-2.5 h-2.5 text-gray-400" />
+                            </div>
+                            <div className="h-5 bg-blue-200 rounded flex items-center justify-center text-[9px] text-blue-700 font-medium">Текст</div>
                           </div>
-                          <div className="flex-1 h-10 bg-blue-200 rounded flex items-center justify-center text-[10px] text-blue-700 font-medium">Текст</div>
-                        </>
-                      ) : opt.value === 'text-top' ? (
-                        <div className="flex flex-col gap-1 w-full">
-                          <div className="h-6 bg-blue-200 rounded flex items-center justify-center text-[10px] text-blue-700 font-medium">Текст</div>
-                          <div className="h-6 bg-gray-200 rounded flex items-center justify-center">
-                            <DevicePhoneMobileIcon className="w-3 h-3 text-gray-400" />
+                        )}
+                      </div>
+                      <div className="font-medium text-xs text-gray-900">{opt.label}</div>
+                      <div className="text-[10px] text-gray-500">{opt.desc}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Mobile */}
+              <div className="space-y-3 pt-3 border-t border-gray-100">
+                <div className="flex items-center gap-2">
+                  <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded font-medium">📱 Гар утас</span>
+                  <span className="text-xs text-gray-400">Зөвхөн гар утас дээр</span>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  {mobileLayoutOptions.map(opt => (
+                    <button
+                      key={opt.value}
+                      onClick={() => setData({ ...data, mobile_layout: opt.value })}
+                      className={`p-3 rounded-xl border-2 transition-all text-left ${
+                        data.mobile_layout === opt.value
+                          ? 'border-green-500 bg-green-50 shadow-sm'
+                          : 'border-gray-200 hover:border-gray-300 bg-white'
+                      }`}
+                    >
+                      <div className="flex gap-2 mb-1.5">
+                        {opt.value === 'text-top' ? (
+                          <div className="flex flex-col gap-0.5 w-full">
+                            <div className="h-5 bg-green-200 rounded flex items-center justify-center text-[9px] text-green-700 font-medium">Текст</div>
+                            <div className="h-5 bg-gray-200 rounded flex items-center justify-center">
+                              <DevicePhoneMobileIcon className="w-2.5 h-2.5 text-gray-400" />
+                            </div>
                           </div>
-                        </div>
-                      ) : (
-                        <div className="flex flex-col gap-1 w-full">
-                          <div className="h-6 bg-gray-200 rounded flex items-center justify-center">
-                            <DevicePhoneMobileIcon className="w-3 h-3 text-gray-400" />
+                        ) : (
+                          <div className="flex flex-col gap-0.5 w-full">
+                            <div className="h-5 bg-gray-200 rounded flex items-center justify-center">
+                              <DevicePhoneMobileIcon className="w-2.5 h-2.5 text-gray-400" />
+                            </div>
+                            <div className="h-5 bg-green-200 rounded flex items-center justify-center text-[9px] text-green-700 font-medium">Текст</div>
                           </div>
-                          <div className="h-6 bg-blue-200 rounded flex items-center justify-center text-[10px] text-blue-700 font-medium">Текст</div>
-                        </div>
-                      )}
-                    </div>
-                    <div className="font-medium text-sm text-gray-900">{opt.label}</div>
-                    <div className="text-xs text-gray-500">{opt.desc}</div>
-                  </button>
-                ))}
+                        )}
+                      </div>
+                      <div className="font-medium text-xs text-gray-900">{opt.label}</div>
+                      <div className="text-[10px] text-gray-500">{opt.desc}</div>
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
 
@@ -744,6 +801,27 @@ export default function AppDownloadPage() {
                 ))}
               </div>
             </div>
+
+            {/* Save / Reset Buttons */}
+            <div className="flex gap-3 sticky bottom-4">
+              <button
+                onClick={handleSave}
+                disabled={saving}
+                className="flex-1 py-3 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {saving ? (
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                ) : (
+                  <>💾 Хадгалах</>
+                )}
+              </button>
+              <button
+                onClick={handleReset}
+                className="px-6 py-3 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition"
+              >
+                Буцаах
+              </button>
+            </div>
           </div>
 
           {/* RIGHT: Preview */}
@@ -779,9 +857,12 @@ export default function AppDownloadPage() {
               )}
 
               {/* Layout info badges */}
-              <div className="flex items-center gap-2 mb-3">
+              <div className="flex flex-wrap items-center gap-2 mb-3">
                 <span className="px-2 py-0.5 bg-blue-50 text-blue-700 text-[10px] rounded-full font-medium">
-                  {layoutOptions.find(o => o.value === data.layout)?.label || 'Стандарт'}
+                  🖥 {layoutOptions.find(o => o.value === data.layout)?.label || 'Стандарт'}
+                </span>
+                <span className="px-2 py-0.5 bg-green-50 text-green-700 text-[10px] rounded-full font-medium">
+                  📱 {mobileLayoutOptions.find(o => o.value === data.mobile_layout)?.label || 'Зураг дээр'}
                 </span>
                 <span className="px-2 py-0.5 bg-purple-50 text-purple-700 text-[10px] rounded-full font-medium">
                   Онцлог: {featuresLayoutOptions.find(o => o.value === data.features_layout)?.label || 'Босоо'}
@@ -878,27 +959,6 @@ export default function AppDownloadPage() {
                   </div>
                 </div>
               </div>
-            </div>
-
-            {/* Save / Reset Buttons */}
-            <div className="flex gap-3 sticky bottom-4">
-              <button
-                onClick={handleSave}
-                disabled={saving}
-                className="flex-1 py-3 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition disabled:opacity-50 flex items-center justify-center gap-2"
-              >
-                {saving ? (
-                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                ) : (
-                  <>💾 Хадгалах</>
-                )}
-              </button>
-              <button
-                onClick={handleReset}
-                className="px-6 py-3 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition"
-              >
-                Буцаах
-              </button>
             </div>
           </div>
         </div>
