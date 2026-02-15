@@ -54,6 +54,10 @@ export default function HeroPage() {
   // Active device tab in modal
   const [activeDeviceTab, setActiveDeviceTab] = useState<DeviceTab>('desktop')
 
+  // Upload progress
+  const [saving, setSaving] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState(0)
+
   const [formData, setFormData] = useState({
     type: 'i' as 'i' | 'v',
     time: 5,
@@ -157,6 +161,9 @@ export default function HeroPage() {
     }
 
     try {
+      setSaving(true)
+      setUploadProgress(0)
+
       const payload = new FormData()
       payload.append('type', mediaType)
       payload.append('time', formData.time.toString())
@@ -175,16 +182,23 @@ export default function HeroPage() {
         payload.append('mobile_file', mobileSelectedFile)
       }
 
-      if (editingSlide) {
-        await axiosInstance.put(`/hero-slider/${editingSlide.id}/`, payload, {
-          headers: { 'Content-Type': 'multipart/form-data' }
-        })
-      } else {
-        await axiosInstance.post('/hero-slider/', payload, {
-          headers: { 'Content-Type': 'multipart/form-data' }
-        })
+      const axiosConfig = {
+        headers: { 'Content-Type': 'multipart/form-data' },
+        onUploadProgress: (progressEvent: any) => {
+          const total = progressEvent.total || 1
+          const pct = Math.round((progressEvent.loaded * 100) / total)
+          // Upload 0-90%, серверт хадгалах 90-100%
+          setUploadProgress(Math.min(pct, 90))
+        },
       }
 
+      if (editingSlide) {
+        await axiosInstance.put(`/hero-slider/${editingSlide.id}/`, payload, axiosConfig)
+      } else {
+        await axiosInstance.post('/hero-slider/', payload, axiosConfig)
+      }
+
+      setUploadProgress(100)
       setSaveSuccess(true)
       setTimeout(() => setSaveSuccess(false), 3000)
       await fetchSlides()
@@ -192,6 +206,9 @@ export default function HeroPage() {
     } catch (error: any) {
       console.error('Error:', error)
       alert(`Алдаа: ${error.response?.data?.detail || error.message}`)
+    } finally {
+      setSaving(false)
+      setUploadProgress(0)
     }
   }
 
@@ -602,10 +619,40 @@ export default function HeroPage() {
             </div>
           </div>
 
+          {/* Upload progress */}
+          {saving && (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-slate-600 font-medium">
+                  {uploadProgress < 90 ? 'Файл илгээж байна...' : uploadProgress < 100 ? 'Cloudinary дээр хадгалж байна...' : 'Амжилттай!'}
+                </span>
+                <span className="text-teal-700 font-bold">{uploadProgress}%</span>
+              </div>
+              <div className="w-full bg-slate-200 rounded-full h-3 overflow-hidden">
+                <div
+                  className="h-full rounded-full transition-all duration-300 ease-out"
+                  style={{
+                    width: `${uploadProgress}%`,
+                    background: uploadProgress < 100
+                      ? 'linear-gradient(90deg, #0d9488, #14b8a6)'
+                      : 'linear-gradient(90deg, #10b981, #34d399)',
+                  }}
+                />
+              </div>
+            </div>
+          )}
+
           {/* Actions */}
           <div className="flex justify-between pt-4 border-t">
-            <button onClick={() => setModalOpen(false)} className="px-5 py-2.5 text-sm text-slate-600 hover:bg-slate-100 rounded-lg">Буцах</button>
-            <Button variant="dark" onClick={handleSave}>Хадгалах</Button>
+            <button onClick={() => setModalOpen(false)} disabled={saving} className="px-5 py-2.5 text-sm text-slate-600 hover:bg-slate-100 rounded-lg disabled:opacity-50">Буцах</button>
+            <Button variant="dark" onClick={handleSave} disabled={saving}>
+              {saving ? (
+                <span className="flex items-center gap-2">
+                  <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
+                  Хадгалж байна... {uploadProgress}%
+                </span>
+              ) : 'Хадгалах'}
+            </Button>
           </div>
         </div>
       </Modal>
