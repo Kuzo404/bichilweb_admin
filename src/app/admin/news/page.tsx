@@ -275,6 +275,8 @@ export default function NewsPage() {
   const [bannerImageFile, setBannerImageFile] = useState<File | null>(null)
   const [latestHeading, setLatestHeading] = useState('Сүүлийн мэдээнүүд')
   const [featuredHeading, setFeaturedHeading] = useState('Онцлох мэдээ')
+  const [latestHeadingEn, setLatestHeadingEn] = useState('')
+  const [featuredHeadingEn, setFeaturedHeadingEn] = useState('')
   const [headingSaving, setHeadingSaving] = useState(false)
 
   useEffect(() => {
@@ -551,6 +553,8 @@ export default function NewsPage() {
       const response = await axiosInstance.get('/news-page-settings/')
       setLatestHeading(response.data.latest_heading || 'Сүүлийн мэдээнүүд')
       setFeaturedHeading(response.data.featured_heading || 'Онцлох мэдээ')
+      setLatestHeadingEn(response.data.latest_heading_en || '')
+      setFeaturedHeadingEn(response.data.featured_heading_en || '')
     } catch (error) {
       console.error('Failed to fetch page settings:', error)
     }
@@ -562,6 +566,8 @@ export default function NewsPage() {
       await axiosInstance.put('/news-page-settings/', {
         latest_heading: latestHeading,
         featured_heading: featuredHeading,
+        latest_heading_en: latestHeadingEn,
+        featured_heading_en: featuredHeadingEn,
       })
       setSuccessMessage('Гарчиг амжилттай хадгалагдлаа')
       setTimeout(() => setSuccessMessage(''), 3000)
@@ -828,12 +834,34 @@ export default function NewsPage() {
               />
             </div>
             <div>
+              <label className="block text-xs font-medium text-gray-500 mb-1">&quot;Онцлох мэдээ&quot; гарчиг (Англи)</label>
+              <input
+                type="text"
+                value={featuredHeadingEn}
+                onChange={(e) => setFeaturedHeadingEn(e.target.value)}
+                className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+                placeholder="Featured News"
+              />
+            </div>
+          </div>
+          <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3 items-end mt-3">
+            <div>
               <label className="block text-xs font-medium text-gray-500 mb-1">&quot;Сүүлийн мэдээнүүд&quot; гарчиг</label>
               <input
                 type="text"
                 value={latestHeading}
                 onChange={(e) => setLatestHeading(e.target.value)}
                 className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-500 mb-1">&quot;Сүүлийн мэдээнүүд&quot; гарчиг (Англи)</label>
+              <input
+                type="text"
+                value={latestHeadingEn}
+                onChange={(e) => setLatestHeadingEn(e.target.value)}
+                className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+                placeholder="Latest News"
               />
             </div>
             <button
