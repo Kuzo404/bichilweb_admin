@@ -206,12 +206,13 @@ export default function GovernanceTab() {
     setIsSaving(true); setErrorMsg('')
     try {
       const payload = formToPayload(formData)
-      const config = { headers: { 'Content-Type': 'multipart/form-data' } }
+      // FormData-г илгээхэд Content-Type-г axios автоматаар тохируулна (boundary-тай)
+      // Гараар тохируулвал boundary дутагдаж, серверт parse хийхэд алдаа гарна
       if (editingId) {
-        await axiosInstance.put(`/management/${editingId}/`, payload, config)
+        await axiosInstance.put(`/management/${editingId}/`, payload, { headers: { 'Content-Type': undefined } })
         setSuccessMsg('Амжилттай шинэчиллээ')
       } else {
-        await axiosInstance.post('/management/', payload, config)
+        await axiosInstance.post('/management/', payload, { headers: { 'Content-Type': undefined } })
         setSuccessMsg('Амжилттай нэмэгдлээ')
       }
       setModalOpen(false)
