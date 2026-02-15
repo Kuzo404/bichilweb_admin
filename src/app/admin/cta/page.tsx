@@ -234,7 +234,7 @@ export default function CTAPage() {
     if (previewUrl && previewUrl.startsWith('blob:')) {
       URL.revokeObjectURL(previewUrl)
     }
-    setPreviewUrl(`${API_BASE_URL}${slide.file_url}`)
+    setPreviewUrl(slide.file_url?.startsWith('http') ? slide.file_url : `${API_BASE_URL}${slide.file_url}`)
     
     // Parse subtitles into pairs
     const mnSubs = slide.subtitles.filter(s => s.language === LANGUAGE_IDS.MN)
@@ -557,7 +557,7 @@ export default function CTAPage() {
                           )}
                           
                           <Image
-                            src={`${API_BASE_URL}${slide.file_url}`}
+                            src={slide.file_url?.startsWith('http') ? slide.file_url : `${API_BASE_URL}${slide.file_url}`}
                             alt={getTitle(slide, previewLang) || 'Slide image'}
                             fill
                             className="object-cover"
@@ -619,7 +619,7 @@ export default function CTAPage() {
                     )}
                     
                     <Image
-                      src={`${API_BASE_URL}${slide.file_url}`}
+                      src={slide.file_url?.startsWith('http') ? slide.file_url : `${API_BASE_URL}${slide.file_url}`}
                       alt={getTitle(slide, 'mn') || 'Slide image'}
                       fill
                       className="object-cover"
