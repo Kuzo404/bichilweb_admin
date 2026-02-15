@@ -202,6 +202,7 @@ export default function StructureTab({
   const [lastSavedState, setLastSavedState] = useState<{ nodes: Node[]; edges: Edge[] } | null>(null)
   const [selectingRoot, setSelectingRoot] = useState<Node | null>(null)
   const [structureId, setStructureId] = useState<number | null>(null)
+  const [aboutPageId, setAboutPageId] = useState<number | null>(null)
   const [chartTitle, setChartTitle] = useState('')
   const [chartDescription, setChartDescription] = useState('')
   const [showTitleEditor, setShowTitleEditor] = useState(false)
@@ -215,7 +216,19 @@ export default function StructureTab({
   useEffect(() => {
     const loadFromAPI = async () => {
       try {
-        const res = await axiosInstance.get('/org-structure/?page=3')
+        // Эхлээд about page-ийн ID-г олно
+        const pagesRes = await axiosInstance.get('/about-page/')
+        const introPage = pagesRes.data.find((p: any) => p.key === 'intro')
+        let pid: number
+        if (introPage) {
+          pid = introPage.id
+        } else {
+          const createRes = await axiosInstance.post('/about-page/', { key: 'intro', active: true, sections: [], media: [] })
+          pid = createRes.data.id
+        }
+        setAboutPageId(pid)
+
+        const res = await axiosInstance.get(`/org-structure/?page=${pid}`)
         const list = res.data
         if (list.length > 0) {
           const record = list[0]
@@ -293,14 +306,14 @@ export default function StructureTab({
     try {
       if (structureId) {
         await axiosInstance.put(`/org-structure/${structureId}/`, {
-          page: 3,
+          page: aboutPageId,
           chart_data: chartData,
           title: chartTitle,
           description: chartDescription,
         })
       } else {
         const res = await axiosInstance.post('/org-structure/', {
-          page: 3,
+          page: aboutPageId,
           chart_data: chartData,
           title: chartTitle,
           description: chartDescription,

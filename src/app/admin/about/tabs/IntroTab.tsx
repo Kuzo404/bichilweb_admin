@@ -291,7 +291,7 @@ function transformIntroDataToAPI(data: IntroData) {
       visible: section.visible,
       translations: [
         {
-          language: 2,
+          language: 1,
           title: section.title_mn,
           color: section.title_color,
           fontsize: section.title_size.toString(),
@@ -299,7 +299,7 @@ function transformIntroDataToAPI(data: IntroData) {
           fontfamily: section.title_family,
         },
         {
-          language: 1,
+          language: 2,
           title: section.title_en,
           color: section.title_color,
           fontsize: section.title_size.toString(),
@@ -312,7 +312,7 @@ function transformIntroDataToAPI(data: IntroData) {
         visible: block.visible,
         translations: [
           {
-            language: 2,
+            language: 1,
             content: block.content_mn,
             fontcolor: block.color,
             fontsize: block.size.toString(),
@@ -320,7 +320,7 @@ function transformIntroDataToAPI(data: IntroData) {
             fontfamily: block.family,
           },
           {
-            language: 1,
+            language: 2,
             content: block.content_en,
             fontcolor: block.color,
             fontsize: block.size.toString(),
@@ -384,8 +384,8 @@ export default function IntroTab() {
 
       // Түүхэн замналыг хөрвүүлнэ
       introData.timeline_events = (timelineRes.data || []).map((ev: any) => {
-        const mn = ev.translations?.find((t: any) => t.language === 2 || t.language_code === 'MN')
-        const en = ev.translations?.find((t: any) => t.language === 1 || t.language_code === 'EN')
+        const mn = ev.translations?.find((t: any) => t.language === 1 || t.language_code === 'MN')
+        const en = ev.translations?.find((t: any) => t.language === 2 || t.language_code === 'EN')
         return {
           id: ev.id,
           year: ev.year || '',
@@ -457,8 +457,8 @@ export default function IntroTab() {
           short_color: ev.short_color,
           desc_color: ev.desc_color,
           translations: [
-            { language: 2, title: ev.title_mn, short_desc: ev.short_mn, full_desc: ev.desc_mn },
-            { language: 1, title: ev.title_en, short_desc: ev.short_en, full_desc: ev.desc_en },
+            { language: 1, title: ev.title_mn, short_desc: ev.short_mn, full_desc: ev.desc_mn },
+            { language: 2, title: ev.title_en, short_desc: ev.short_en, full_desc: ev.desc_en },
           ],
         })
       }
@@ -541,6 +541,11 @@ export default function IntroTab() {
       sections[sIdx] = { ...sections[sIdx], blocks }
       return { ...prev, sections }
     })
+  }
+
+  /* ── Он солих (Timeline toggle) ─────────────────────────────── */
+  const toggleYear = (index: number) => {
+    setExpandedYear(expandedYear === index ? null : index)
   }
 
   /* ── Модал нээх/хаах ─────────────────────────────────────────── */
@@ -724,70 +729,105 @@ export default function IntroTab() {
         </div>
 
         {showTimelinePreview && data.timeline_events.length > 0 && (
-          <div className="overflow-y-auto max-h-[75vh] p-6" ref={timelineRef}>
-            <div className="relative">
+          <div className="overflow-y-auto max-h-[75vh] p-6">
+            <div ref={timelineRef} className="py-12 relative overflow-hidden">
+              <h3 className="text-3xl font-bold text-center mb-16 text-slate-900">
+                Түүхэн замнал
+              </h3>
+              
               {/* Голын шугам */}
-              <div className="hidden md:block absolute left-1/2 transform -translate-x-px top-0 bottom-0 w-0.5 bg-gradient-to-b from-teal-400 via-sky-400 to-indigo-400" />
-              <div className="space-y-16">
-                {data.timeline_events.filter(e => e.visible).map((event, index) => {
-                  const isEven = index % 2 === 0
-                  const isRevealed = revealedIndexes.has(index)
-                  const ContentCard = (
-                    <div className={`bg-white border border-slate-200 rounded-xl p-6 shadow-md hover:shadow-lg transition-all duration-500 ${isRevealed ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
-                      <h3 className="text-lg font-bold mb-2" style={{ color: event.title_color }}>
-                        {previewLang === 'mn' ? event.title_mn : event.title_en}
-                      </h3>
-                      <p className="text-sm mb-3" style={{ color: event.short_color }}>
-                        {previewLang === 'mn' ? event.short_mn : event.short_en}
-                      </p>
-                      {expandedYear === index && (
-                        <p className="text-sm mt-2 animate-in fade-in duration-300" style={{ color: event.desc_color }}>
-                          {previewLang === 'mn' ? event.desc_mn : event.desc_en}
-                        </p>
-                      )}
-                      <button onClick={() => setExpandedYear(expandedYear === index ? null : index)}
-                        className="mt-3 text-xs font-medium text-teal-600 hover:text-teal-700 transition-colors">
-                        {expandedYear === index ? 'Хураах ▲' : 'Дэлгэрэнгүй ▼'}
-                      </button>
-                    </div>
-                  )
-                  return (
-                    <div key={index} ref={(el) => { itemRefs.current[index] = el }} data-index={index}
-                      className="relative flex flex-col md:flex-row items-center md:items-start gap-4 md:gap-0">
-                      {/* Голын цэг */}
-                      <div className="hidden md:flex absolute left-1/2 transform -translate-x-1/2 top-4 z-10 items-center justify-center">
-                        <div className={`w-4 h-4 rounded-full border-2 border-white shadow-md transition-colors duration-300 ${activeIndex === index ? 'bg-teal-500' : 'bg-slate-300'}`} />
-                      </div>
-                      {/* Зүүн тал */}
-                      <div className="w-full md:w-1/2 md:pr-12 text-right">
-                        <div className="block md:hidden text-center mb-2">
-                          <span className="text-3xl font-bold" style={{ color: event.year_color }}>{event.year}</span>
+              <div className="absolute left-[27px] md:left-1/2 top-32 bottom-12 w-0.5 bg-teal-200 transform md:-translate-x-1/2"></div>
+
+              <div className="space-y-12">
+                  {data.timeline_events.filter(e => e.visible).map((event, index) => {
+                    const isExpanded = expandedYear === index
+                    const isEven = index % 2 === 0
+
+                    {/* Контент карт */}
+                    const ContentCard = (
+                      <div className="w-full bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-lg transition-all group relative z-10">
+                        <div className="md:hidden flex items-center gap-3 mb-4">
+                          <span className="text-2xl font-bold" style={{ color: event.year_color }}>{event.year}</span>
+                          <div className="h-px bg-teal-100 flex-1"></div>
                         </div>
-                        <div className="hidden md:block w-full">
-                          {isEven ? ContentCard : (
+
+                        <h4 className="text-lg font-bold mb-2 group-hover:text-teal-600 transition-colors" style={{ color: event.title_color }}>{previewLang === 'mn' ? event.title_mn : event.title_en}</h4>
+                        <p className="text-sm leading-relaxed" style={{ color: event.short_color }}>
+                          {previewLang === 'mn' ? event.short_mn : event.short_en}
+                        </p>
+                        
+                        <div className={clsx(
+                          "grid transition-all duration-300 ease-in-out",
+                          isExpanded ? "grid-rows-[1fr] opacity-100 mt-4" : "grid-rows-[0fr] opacity-0 mt-0"
+                        )}>
+                          <div className="overflow-hidden min-h-0">
+                            <div className="pt-4 border-t border-gray-100 text-sm leading-relaxed text-justify" style={{ color: event.desc_color }}>
+                              {previewLang === 'mn' ? event.desc_mn : event.desc_en}
+                            </div>
+                          </div>
+                        </div>
+
+                        <button
+                          onClick={() => toggleYear(index)}
+                          className="flex items-center gap-2 text-sm font-medium text-teal-600 mt-4 hover:bg-teal-50 px-3 py-1.5 rounded-lg -ml-3 w-fit transition-colors"
+                        >
+                          {isExpanded ? 'Хураангуйлах' : 'Дэлгэрэнгүй'}
+                          <svg 
+                            className={clsx("w-4 h-4 transition-transform duration-300", isExpanded ? "rotate-180" : "")} 
+                            fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                          >
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                          </svg>
+                        </button>
+                      </div>
+                    )
+
+                    return (
+                      <div
+                        key={index}
+                        ref={(el) => { if (el) itemRefs.current[index] = el; }}
+                        data-index={index}
+                        className="relative flex flex-col md:flex-row items-center md:items-start group"
+                      >
+                        {/* Голын цэг */}
+                        <div className="absolute left-[18px] md:left-1/2 w-5 h-5 rounded-full border-4 border-white bg-teal-600 shadow-sm z-20 top-0 md:top-8 transform md:-translate-x-1/2"></div>
+                        
+                        {/* Зүүн тал (Desktop) */}
+                        <div className={clsx(
+                          "w-full md:w-1/2 pl-16 md:pl-0 md:pr-12 md:text-right flex md:block",
+                          isEven ? "" : "md:flex md:justify-end" 
+                        )}>
+                          {/* Гар утас: Карт үргэлж харуулна */}
+                          <div className="md:hidden w-full">
+                            {ContentCard}
+                          </div>
+
+                          {/* Desktop: Тэгш бол Карт, сондгой бол Он */}
+                          <div className="hidden md:block w-full">
+                            {isEven ? ContentCard : (
+                              <span className="text-5xl font-bold sticky top-32 transition-colors duration-300" style={{ color: event.year_color, opacity: activeIndex === index ? 1 : 0.5 }}>
+                                {event.year}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Баруун тал (Desktop) */}
+                        <div className="hidden md:block w-full md:w-1/2 md:pl-12 text-left">
+                          {/* Desktop: Тэгш бол Он, сондгой бол Карт */}
+                          {isEven ? (
                             <span className="text-5xl font-bold sticky top-32 transition-colors duration-300" style={{ color: event.year_color, opacity: activeIndex === index ? 1 : 0.5 }}>
                               {event.year}
                             </span>
-                          )}
+                          ) : ContentCard}
                         </div>
                       </div>
-                      {/* Баруун тал */}
-                      <div className="hidden md:block w-full md:w-1/2 md:pl-12 text-left">
-                        {isEven ? (
-                          <span className="text-5xl font-bold sticky top-32 transition-colors duration-300" style={{ color: event.year_color, opacity: activeIndex === index ? 1 : 0.5 }}>
-                            {event.year}
-                          </span>
-                        ) : ContentCard}
-                      </div>
-                      {/* Гар утасны карт */}
-                      <div className="block md:hidden w-full">{ContentCard}</div>
-                    </div>
-                  )
-                })}
+                    )
+                  })}
+                </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
       </div>
 
       {/* ──────────────────────────────────────────────────────────

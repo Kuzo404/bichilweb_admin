@@ -77,13 +77,13 @@ const apiToFrontend = (apiData: CoreValueAPI): Value | null => {
     return null
   }
 
-  const mnTitleTranslation = apiData.title_translations.find(t => t.language === 2)
-  const enTitleTranslation = apiData.title_translations.find(t => t.language === 1)
+  const mnTitleTranslation = apiData.title_translations.find(t => t.language === 1)
+  const enTitleTranslation = apiData.title_translations.find(t => t.language === 2)
   const fallbackTitleTranslation = apiData.title_translations[0]
   const titleTranslation = mnTitleTranslation || enTitleTranslation || fallbackTitleTranslation
 
-  const mnDescTranslation = apiData.desc_translations?.find(t => t.language === 2)
-  const enDescTranslation = apiData.desc_translations?.find(t => t.language === 1)
+  const mnDescTranslation = apiData.desc_translations?.find(t => t.language === 1)
+  const enDescTranslation = apiData.desc_translations?.find(t => t.language === 2)
   const fallbackDescTranslation = apiData.desc_translations?.[0]
   const descTranslation = mnDescTranslation || enDescTranslation || fallbackDescTranslation
 
@@ -119,7 +119,7 @@ const frontendToApi = (value: Value): Omit<CoreValueAPI, 'id'> => {
     visible: value.visible !== false,
     title_translations: [
       {
-        language: 1,
+        language: 2,
         title: value.title_en,
         fontcolor: value.title_color,
         fontsize: value.title_size,
@@ -128,7 +128,7 @@ const frontendToApi = (value: Value): Omit<CoreValueAPI, 'id'> => {
         letterspace: value.title_letter_spacing.toString()
       },
       {
-        language: 2,
+        language: 1,
         title: value.title_mn,
         fontcolor: value.title_color,
         fontsize: value.title_size,
@@ -144,7 +144,7 @@ const frontendToApi = (value: Value): Omit<CoreValueAPI, 'id'> => {
   if (value.desc_en || value.desc_mn) {
     apiData.desc_translations = [
       {
-        language: 1,
+        language: 2,
         desc: value.desc_en,
         fontcolor: value.desc_color,
         fontsize: value.desc_size,
@@ -153,7 +153,7 @@ const frontendToApi = (value: Value): Omit<CoreValueAPI, 'id'> => {
         letterspace: value.desc_letter_spacing.toString()
       },
       {
-        language: 2,
+        language: 1,
         desc: value.desc_mn,
         fontcolor: value.desc_color,
         fontsize: value.desc_size,
@@ -429,6 +429,16 @@ export default function ValuesTab() {
               EN
             </button>
           </div>
+          <button
+            onClick={handleAddValue}
+            disabled={loading}
+            className="px-3 py-1.5 bg-teal-600 hover:bg-teal-700 text-white text-xs font-semibold rounded-lg transition-colors flex items-center gap-1.5 disabled:opacity-50"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            Нэмэх
+          </button>
         </div>
       </div>
 

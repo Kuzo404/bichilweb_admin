@@ -59,20 +59,36 @@ export default function BannerTab() {
   const [successMsg, setSuccessMsg] = useState('')
   const [errorMsg, setErrorMsg] = useState('')
   const [lang, setLang] = useState<'mn' | 'en'>('mn')
+  const [pageId, setPageId] = useState<number | null>(null)
 
-  const langId = lang === 'mn' ? 2 : 1
+  const langId = lang === 'mn' ? 1 : 2
 
   const fetchBanners = useCallback(async () => {
     try {
       setLoading(true)
-      const res = await axiosInstance.get<BannerAPI[]>('/about-banner/?page=3')
+      // Эхлээд about page-ийн ID-г олно
+      let pid = pageId
+      if (!pid) {
+        const pagesRes = await axiosInstance.get('/about-page/')
+        const introPage = pagesRes.data.find((p: any) => p.key === 'intro')
+        if (introPage) {
+          pid = introPage.id
+          setPageId(pid)
+        } else {
+          // About page үүсээгүй бол шинээр үүсгэнэ
+          const createRes = await axiosInstance.post('/about-page/', { key: 'intro', active: true, sections: [], media: [] })
+          pid = createRes.data.id
+          setPageId(pid)
+        }
+      }
+      const res = await axiosInstance.get<BannerAPI[]>(`/about-banner/?page=${pid}`)
       setBanners(res.data)
     } catch {
       setErrorMsg('Баннер татахад алдаа гарлаа')
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [pageId])
 
   useEffect(() => { fetchBanners() }, [fetchBanners])
 
@@ -84,8 +100,8 @@ export default function BannerTab() {
 
   const openEditModal = (banner: BannerAPI) => {
     setEditingId(banner.id)
-    const mn = getTr(banner.translations, 2)
-    const en = getTr(banner.translations, 1)
+    const mn = getTr(banner.translations, 1)
+    const en = getTr(banner.translations, 2)
     setFormData({
       image: banner.image || '',
       title_mn: mn?.title || '',
@@ -106,13 +122,13 @@ export default function BannerTab() {
     setErrorMsg('')
     try {
       const payload = {
-        page: 3,
+        page: pageId,
         image: formData.image,
         sort_order: formData.sort_order,
         active: true,
         translations: [
-          { language: 2, title: formData.title_mn, subtitle: formData.subtitle_mn },
-          { language: 1, title: formData.title_en, subtitle: formData.subtitle_en },
+          { language: 1, title: formData.title_mn, subtitle: formData.subtitle_mn },
+          { language: 2, title: formData.title_en, subtitle: formData.subtitle_en },
         ],
       }
       if (editingId) {

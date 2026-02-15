@@ -123,8 +123,8 @@ const formToPayload = (form: MemberFormData): globalThis.FormData => {
 
   // Translations as indexed keys for FormData
   const translations = [
-    { language: '1', name: form.name_en, role: form.role_en, description: form.desc_en, location: form.location_en, district: form.district_en },
-    { language: '2', name: form.name_mn, role: form.role_mn, description: form.desc_mn, location: form.location_mn, district: form.district_mn },
+    { language: '2', name: form.name_en, role: form.role_en, description: form.desc_en, location: form.location_en, district: form.district_en },
+    { language: '1', name: form.name_mn, role: form.role_mn, description: form.desc_mn, location: form.location_mn, district: form.district_mn },
   ]
   translations.forEach((tr, i) => {
     Object.entries(tr).forEach(([key, val]) => {
@@ -158,7 +158,7 @@ export default function GovernanceTab() {
   const [catSaving, setCatSaving] = useState(false)
   const [showCatManager, setShowCatManager] = useState(false)
 
-  const langId = lang === 'mn' ? 2 : 1
+  const langId = lang === 'mn' ? 1 : 2
 
   /* ── Fetch ───────────────────────────────────────────────────────── */
 
@@ -252,8 +252,8 @@ export default function GovernanceTab() {
 
   const openEditCategory = (cat: CategoryAPI) => {
     setCatEditing(cat)
-    const mn = cat.translations.find(t => t.language === 2)
-    const en = cat.translations.find(t => t.language === 1)
+    const mn = cat.translations.find(t => t.language === 1)
+    const en = cat.translations.find(t => t.language === 2)
     setCatForm({
       key: cat.key,
       label_mn: mn?.label || '',
@@ -274,8 +274,8 @@ export default function GovernanceTab() {
         sort_order: catForm.sort_order,
         active: true,
         translations: [
-          { language: 2, label: catForm.label_mn },
-          { language: 1, label: catForm.label_en },
+          { language: 1, label: catForm.label_mn },
+          { language: 2, label: catForm.label_en },
         ],
       }
       if (catEditing) {
