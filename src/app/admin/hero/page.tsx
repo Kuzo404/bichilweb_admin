@@ -195,11 +195,12 @@ export default function HeroPage() {
 
       const axiosConfig = {
         headers: { 'Content-Type': 'multipart/form-data' },
+        timeout: 600000, // 10 минут (видео upload удаан байж болно)
         onUploadProgress: (progressEvent: any) => {
           const total = progressEvent.total || 1
           const pct = Math.round((progressEvent.loaded * 100) / total)
-          // Upload 0-90%, серверт хадгалах 90-100%
-          setUploadProgress(Math.min(pct, 90))
+          // Upload 0-80%, серверт Cloudinary руу хадгалах 80-100%
+          setUploadProgress(Math.min(pct, 80))
         },
       }
 
@@ -216,7 +217,12 @@ export default function HeroPage() {
       setModalOpen(false)
     } catch (error: any) {
       console.error('Error:', error)
-      alert(`Алдаа: ${error.response?.data?.detail || error.message}`)
+      const isNetworkError = error.code === 'ERR_NETWORK' || error.message === 'Network Error'
+      if (isNetworkError) {
+        alert('Сервер холболтын алдаа (Network Error).\n\n• Видео файл хэт том байж магадгүй — 100MB-с бага видео оруулна уу.\n• Серверийн холболт тасарсан байж магадгүй.\n• Дахин оролдоно уу.')
+      } else {
+        alert(`Алдаа: ${error.response?.data?.detail || error.message}`)
+      }
     } finally {
       setSaving(false)
       setUploadProgress(0)
@@ -550,6 +556,24 @@ export default function HeroPage() {
       {/* Create/Edit Modal */}
       <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title={editingSlide ? 'Засах' : 'Нэмэх'} size="lg">
         <div className="space-y-5">
+          {/* ─── Идэвхжүүлэх Toggle (бүх дэлгэцэнд) ─── */}
+          <div className={`flex items-center justify-between p-4 rounded-xl border-2 transition-all ${formData.visible ? 'border-teal-500 bg-teal-50' : 'border-slate-200 bg-slate-50'}`}>
+            <div>
+              <h4 className={`text-sm font-bold ${formData.visible ? 'text-teal-800' : 'text-slate-600'}`}>
+                {formData.visible ? '✓ Бүх дэлгэцэнд идэвхтэй' : 'Идэвхгүй'}
+              </h4>
+              <p className="text-xs text-slate-500 mt-0.5">
+                {formData.visible
+                  ? 'Desktop, Tablet, Гар утас бүгдэд харагдана. Tablet/Mobile зураг заавал биш — Desktop зураг ашиглагдана.'
+                  : 'Слайд нуугдсан байна — нүүр хуудсанд харагдахгүй.'}
+              </p>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer flex-shrink-0 ml-4">
+              <input type="checkbox" checked={formData.visible} onChange={(e) => setFormData({ ...formData, visible: e.target.checked })} className="sr-only peer" />
+              <div className="w-12 h-7 bg-slate-300 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-teal-600 shadow-inner"></div>
+            </label>
+          </div>
+
           {/* Device Tabs */}
           <div className="flex gap-1 p-1 bg-slate-100 rounded-xl">
             {deviceTabs.map((tab) => (
@@ -614,18 +638,9 @@ export default function HeroPage() {
                 {videoDuration > 0 && <p className="text-xs text-blue-600 mt-1">Бичлэг хугацаа: {videoDuration}с</p>}
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-sm font-medium mb-2">Дараалал</label>
-                  <Input type="number" value={formData.index} onChange={(e) => setFormData({ ...formData, index: +e.target.value })} min="1" />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-2">Идэвхжүүлэх</label>
-                  <label className="relative inline-flex items-center cursor-pointer mt-2">
-                    <input type="checkbox" checked={formData.visible} onChange={(e) => setFormData({ ...formData, visible: e.target.checked })} className="sr-only peer" />
-                    <div className="w-11 h-6 bg-slate-200 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-teal-600"></div>
-                  </label>
-                </div>
+              <div>
+                <label className="block text-sm font-medium mb-2">Дараалал</label>
+                <Input type="number" value={formData.index} onChange={(e) => setFormData({ ...formData, index: +e.target.value })} min="1" />
               </div>
             </div>
           </div>
@@ -635,7 +650,7 @@ export default function HeroPage() {
             <div className="space-y-2">
               <div className="flex items-center justify-between text-sm">
                 <span className="text-slate-600 font-medium">
-                  {uploadProgress < 90 ? 'Файл илгээж байна...' : uploadProgress < 100 ? 'Cloudinary дээр хадгалж байна...' : 'Амжилттай!'}
+                  {uploadProgress < 80 ? 'Файл илгээж байна...' : uploadProgress < 100 ? 'Cloudinary дээр хадгалж байна (удаж магадгүй)...' : 'Амжилттай!'}
                 </span>
                 <span className="text-teal-700 font-bold">{uploadProgress}%</span>
               </div>
