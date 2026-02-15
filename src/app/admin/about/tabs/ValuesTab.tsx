@@ -66,7 +66,23 @@ interface Value {
   backend_id?: number
   index?: number
   visible?: boolean
+  // Sub-items (multiple title+desc blocks with icon)
+  sub_items?: SubItem[]
 }
+
+interface SubItem {
+  icon: string
+  title_mn: string
+  title_en: string
+  desc_mn: string
+  desc_en: string
+}
+
+const ICON_OPTIONS = [
+  '🏆', '💡', '🤝', '🎯', '⭐', '💪', '🌱', '🔒', '💎', '🌍',
+  '❤️', '📈', '🏗️', '🔑', '🛡️', '🔥', '📊', '🎓', '👥', '🏛️',
+  '💰', '📱', '🌟', '🎨', '📋', '✨', '🧭', '🏅'
+]
 
 // ValuesTab is self-contained — fetches + saves to /core-value/ API
 
@@ -107,7 +123,25 @@ const apiToFrontend = (apiData: CoreValueAPI): Value | null => {
     desc_size: descTranslation?.fontsize || 14,
     desc_weight: descTranslation?.fontweight || 'normal',
     desc_family: descTranslation?.fontfamily || 'sans-serif',
-    desc_letter_spacing: parseFloat(descTranslation?.letterspace || '0')
+    desc_letter_spacing: parseFloat(descTranslation?.letterspace || '0'),
+    sub_items: (() => {
+      try {
+        const mnDesc = mnDescTranslation?.desc || ''
+        const enDesc = enDescTranslation?.desc || ''
+        const mnItems = JSON.parse(mnDesc)
+        const enItems = JSON.parse(enDesc)
+        if (Array.isArray(mnItems) && mnItems.length > 0 && mnItems[0].title !== undefined) {
+          return mnItems.map((item: any, i: number) => ({
+            icon: item.icon || '',
+            title_mn: item.title || '',
+            title_en: enItems[i]?.title || '',
+            desc_mn: item.desc || '',
+            desc_en: enItems[i]?.desc || '',
+          }))
+        }
+      } catch {}
+      return undefined
+    })()
   }
 }
 
@@ -140,8 +174,31 @@ const frontendToApi = (value: Value): Omit<CoreValueAPI, 'id'> => {
     desc_translations: []
   }
 
-  // Add desc_translations if descriptions exist
-  if (value.desc_en || value.desc_mn) {
+  // Add desc_translations - sub_items as JSON or plain text
+  if (value.sub_items && value.sub_items.length > 0) {
+    const mnJson = JSON.stringify(value.sub_items.map(s => ({ icon: s.icon, title: s.title_mn, desc: s.desc_mn })))
+    const enJson = JSON.stringify(value.sub_items.map(s => ({ icon: s.icon, title: s.title_en, desc: s.desc_en })))
+    apiData.desc_translations = [
+      {
+        language: 2,
+        desc: enJson,
+        fontcolor: value.desc_color,
+        fontsize: value.desc_size,
+        fontweight: value.desc_weight,
+        fontfamily: value.desc_family,
+        letterspace: value.desc_letter_spacing.toString()
+      },
+      {
+        language: 1,
+        desc: mnJson,
+        fontcolor: value.desc_color,
+        fontsize: value.desc_size,
+        fontweight: value.desc_weight,
+        fontfamily: value.desc_family,
+        letterspace: value.desc_letter_spacing.toString()
+      }
+    ]
+  } else if (value.desc_en || value.desc_mn) {
     apiData.desc_translations = [
       {
         language: 2,
@@ -548,7 +605,21 @@ export default function ValuesTab() {
                         {previewLang === 'mn' ? value.title_mn : value.title_en}
                       </h3>
                       
-                      {(value.desc_mn || value.desc_en) && (
+                      {(value.sub_items && value.sub_items.length > 0) ? (
+                        <div className="space-y-2 flex-1">
+                          {value.sub_items.map((item, si) => (
+                            <div key={si} className="flex items-start gap-2">
+                              {item.icon && <span className="text-sm mt-0.5 shrink-0">{item.icon}</span>}
+                              <div className="min-w-0">
+                                <h4 className="text-sm font-semibold text-gray-800">{previewLang === 'mn' ? item.title_mn : item.title_en}</h4>
+                                {(previewLang === 'mn' ? item.desc_mn : item.desc_en) && (
+                                  <p className="text-xs text-gray-500 mt-0.5">{previewLang === 'mn' ? item.desc_mn : item.desc_en}</p>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (value.desc_mn || value.desc_en) && (
                         <p style={{
                           color: value.desc_color,
                           fontSize: `${value.desc_size}px`,
@@ -728,26 +799,132 @@ export default function ValuesTab() {
                     />
                   </div>
 
-                  {/* Description Mongolian */}
-                  <div className="border border-teal-200 rounded-lg p-4 bg-teal-50/20">
-                    <label className="block text-sm font-medium text-slate-700 mb-2">Тайлбар (Монгол)</label>
-                    <textarea
-                      value={editingValue.desc_mn}
-                      onChange={(e) => setValues(values.map(v => v.id === editingValue.id ? {...v, desc_mn: e.target.value} : v))}
-                      rows={4}
-                      className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent resize-none"
-                    />
-                  </div>
+                  {/* Sub-items Editor */}
+                  <div className="border border-amber-200 rounded-lg p-4 bg-amber-50/20">
+                    <div className="flex items-center justify-between mb-4">
+                      <h4 className="text-sm font-semibold text-slate-900">Гарчиг, Тайлбар жагсаалт</h4>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const newItem: SubItem = { icon: '⭐', title_mn: '', title_en: '', desc_mn: '', desc_en: '' }
+                          setValues(values.map(v => v.id === editingValue.id ? {...v, sub_items: [...(v.sub_items || []), newItem]} : v))
+                        }}
+                        className="px-3 py-1.5 text-xs font-semibold text-white bg-teal-600 hover:bg-teal-700 rounded-lg transition-colors flex items-center gap-1"
+                      >
+                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+                        Нэмэх
+                      </button>
+                    </div>
 
-                  {/* Description English */}
-                  <div className="border border-blue-200 rounded-lg p-4 bg-blue-50/20">
-                    <label className="block text-sm font-medium text-slate-700 mb-2">Description (English)</label>
-                    <textarea
-                      value={editingValue.desc_en}
-                      onChange={(e) => setValues(values.map(v => v.id === editingValue.id ? {...v, desc_en: e.target.value} : v))}
-                      rows={4}
-                      className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent resize-none"
-                    />
+                    {(!editingValue.sub_items || editingValue.sub_items.length === 0) && (
+                      <p className="text-sm text-slate-400 text-center py-4">Гарчиг, тайлбар нэмээгүй байна. &quot;Нэмэх&quot; товч дарж нэмнэ үү.</p>
+                    )}
+
+                    <div className="space-y-4">
+                      {(editingValue.sub_items || []).map((item, idx) => (
+                        <div key={idx} className="border border-slate-200 rounded-lg p-4 bg-white">
+                          <div className="flex items-center justify-between mb-3">
+                            <span className="text-xs font-semibold text-slate-500">#{idx + 1}</span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const updated = [...(editingValue.sub_items || [])]
+                                updated.splice(idx, 1)
+                                setValues(values.map(v => v.id === editingValue.id ? {...v, sub_items: updated} : v))
+                              }}
+                              className="text-xs text-red-500 hover:text-red-700 font-medium transition-colors"
+                            >
+                              Устгах
+                            </button>
+                          </div>
+
+                          {/* Icon Picker */}
+                          <div className="mb-3">
+                            <label className="block text-xs font-medium text-slate-600 mb-1.5">Icon</label>
+                            <div className="flex flex-wrap gap-1.5">
+                              {ICON_OPTIONS.map(icon => (
+                                <button
+                                  key={icon}
+                                  type="button"
+                                  onClick={() => {
+                                    const updated = [...(editingValue.sub_items || [])]
+                                    updated[idx] = {...updated[idx], icon}
+                                    setValues(values.map(v => v.id === editingValue.id ? {...v, sub_items: updated} : v))
+                                  }}
+                                  className={`w-8 h-8 flex items-center justify-center rounded-md text-lg transition-all ${item.icon === icon ? 'bg-teal-100 ring-2 ring-teal-500 scale-110' : 'bg-slate-50 hover:bg-slate-100'}`}
+                                >
+                                  {icon}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* Title MN/EN */}
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+                            <div>
+                              <label className="block text-xs font-medium text-slate-600 mb-1">Гарчиг (MN)</label>
+                              <input
+                                type="text"
+                                value={item.title_mn}
+                                onChange={(e) => {
+                                  const updated = [...(editingValue.sub_items || [])]
+                                  updated[idx] = {...updated[idx], title_mn: e.target.value}
+                                  setValues(values.map(v => v.id === editingValue.id ? {...v, sub_items: updated} : v))
+                                }}
+                                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent text-sm"
+                                placeholder="Гарчиг"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-xs font-medium text-slate-600 mb-1">Title (EN)</label>
+                              <input
+                                type="text"
+                                value={item.title_en}
+                                onChange={(e) => {
+                                  const updated = [...(editingValue.sub_items || [])]
+                                  updated[idx] = {...updated[idx], title_en: e.target.value}
+                                  setValues(values.map(v => v.id === editingValue.id ? {...v, sub_items: updated} : v))
+                                }}
+                                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent text-sm"
+                                placeholder="Title"
+                              />
+                            </div>
+                          </div>
+
+                          {/* Desc MN/EN */}
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div>
+                              <label className="block text-xs font-medium text-slate-600 mb-1">Тайлбар (MN)</label>
+                              <textarea
+                                value={item.desc_mn}
+                                onChange={(e) => {
+                                  const updated = [...(editingValue.sub_items || [])]
+                                  updated[idx] = {...updated[idx], desc_mn: e.target.value}
+                                  setValues(values.map(v => v.id === editingValue.id ? {...v, sub_items: updated} : v))
+                                }}
+                                rows={2}
+                                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent text-sm resize-none"
+                                placeholder="Тайлбар"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-xs font-medium text-slate-600 mb-1">Description (EN)</label>
+                              <textarea
+                                value={item.desc_en}
+                                onChange={(e) => {
+                                  const updated = [...(editingValue.sub_items || [])]
+                                  updated[idx] = {...updated[idx], desc_en: e.target.value}
+                                  setValues(values.map(v => v.id === editingValue.id ? {...v, sub_items: updated} : v))
+                                }}
+                                rows={2}
+                                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent text-sm resize-none"
+                                placeholder="Description"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </>
               )}
@@ -852,15 +1029,13 @@ export default function ValuesTab() {
             </div>
 
             <div className="flex gap-3 justify-end pt-4 border-t border-gray-200">
-              {!['vision', 'mission'].includes(editingValue.id) && (
-                <button
-                  type="button"
-                  onClick={() => handleDeleteClick(editingValue.id)}
-                  className="px-4 py-2 text-sm font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors"
-                >
-                  Устгах
-                </button>
-              )}
+              <button
+                type="button"
+                onClick={() => handleDeleteClick(editingValue.id)}
+                className="px-4 py-2 text-sm font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors"
+              >
+                Устгах
+              </button>
               <button
                 type="button"
                 onClick={handleCloseEditModal}

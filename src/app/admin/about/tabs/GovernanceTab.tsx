@@ -140,7 +140,6 @@ const formToPayload = (form: MemberFormData): globalThis.FormData => {
 export default function GovernanceTab() {
   const [members, setMembers] = useState<MemberAPI[]>([])
   const [categories, setCategories] = useState<CategoryAPI[]>([])
-  const [lang, setLang] = useState<'mn' | 'en'>('mn')
   const [activeType, setActiveType] = useState('')
   const [loading, setLoading] = useState(true)
   const [modalOpen, setModalOpen] = useState(false)
@@ -157,8 +156,9 @@ export default function GovernanceTab() {
   const [catForm, setCatForm] = useState<CategoryFormData>({ ...emptyCategoryForm })
   const [catSaving, setCatSaving] = useState(false)
   const [showCatManager, setShowCatManager] = useState(false)
+  const [showBranchFields, setShowBranchFields] = useState(false)
 
-  const langId = lang === 'mn' ? 1 : 2
+  const langId = 1
 
   /* ── Fetch ───────────────────────────────────────────────────────── */
 
@@ -190,12 +190,15 @@ export default function GovernanceTab() {
   const openAddModal = () => {
     setEditingId(null)
     setFormData({ ...emptyForm, type: activeType, sort_order: displayed.length })
+    setShowBranchFields(false)
     setModalOpen(true)
   }
 
   const openEditModal = (member: MemberAPI) => {
     setEditingId(member.id)
-    setFormData(memberToForm(member))
+    const form = memberToForm(member)
+    setFormData(form)
+    setShowBranchFields(!!(form.location_mn || form.location_en || form.district_mn || form.district_en))
     setModalOpen(true)
   }
 
@@ -353,14 +356,6 @@ export default function GovernanceTab() {
         <div className="flex items-center justify-between mb-8">
           <h2 className="sr-only">Компанийн засаглал</h2>
           <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2 bg-slate-100 rounded-lg p-1">
-              {(['mn', 'en'] as const).map(l => (
-                <button key={l} onClick={() => setLang(l)}
-                  className={clsx("px-3 py-1 rounded-md font-medium transition-colors text-sm",
-                    lang === l ? "bg-white text-teal-600 shadow-sm" : "text-gray-600 hover:text-gray-900"
-                  )}>{l.toUpperCase()}</button>
-              ))}
-            </div>
             <button
               onClick={() => setShowCatManager(!showCatManager)}
               className={clsx(
@@ -519,7 +514,7 @@ export default function GovernanceTab() {
                   <p className="text-xs sm:text-sm text-teal-600 uppercase tracking-wide mt-1 mb-4 sm:mb-6">{tr?.role}</p>
                   {tr?.location && (
                     <p className="text-xs sm:text-sm text-slate-600 mb-4">
-                      <span className="font-medium">{lang === 'mn' ? 'Байршил' : 'Location'}:</span> {tr.location} - {tr.district}
+                      <span className="font-medium">Байршил:</span> {tr.location} - {tr.district}
                     </p>
                   )}
                   {tr?.description && (
@@ -579,7 +574,28 @@ export default function GovernanceTab() {
               </div>
             </div>
 
-            {formData.type === 'branch' && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-medium text-slate-600 mb-1">Тайлбар (Монгол)</label>
+                <Textarea value={formData.desc_mn} onChange={(e) => setFormData({ ...formData, desc_mn: e.target.value })} placeholder="Тайлбар" rows={4} />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-slate-600 mb-1">Description (English)</label>
+                <Textarea value={formData.desc_en} onChange={(e) => setFormData({ ...formData, desc_en: e.target.value })} placeholder="Description" rows={4} />
+              </div>
+            </div>
+
+            <label className="flex items-center gap-2 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={showBranchFields}
+                onChange={(e) => setShowBranchFields(e.target.checked)}
+                className="w-4 h-4 rounded border-slate-300 text-teal-600 focus:ring-teal-500"
+              />
+              <span className="text-sm font-medium text-slate-700">Салбар бичлэг</span>
+            </label>
+
+            {showBranchFields && (
               <>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
@@ -602,19 +618,6 @@ export default function GovernanceTab() {
                   </div>
                 </div>
               </>
-            )}
-
-            {formData.type !== 'branch' && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-medium text-slate-600 mb-1">Тайлбар (Монгол)</label>
-                  <Textarea value={formData.desc_mn} onChange={(e) => setFormData({ ...formData, desc_mn: e.target.value })} placeholder="Тайлбар" rows={4} />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-slate-600 mb-1">Description (English)</label>
-                  <Textarea value={formData.desc_en} onChange={(e) => setFormData({ ...formData, desc_en: e.target.value })} placeholder="Description" rows={4} />
-                </div>
-              </div>
             )}
 
             <div className="w-32">
