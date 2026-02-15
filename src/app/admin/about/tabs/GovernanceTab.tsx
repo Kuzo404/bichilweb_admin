@@ -44,13 +44,14 @@ interface CategoryAPI {
   translations: CategoryTranslation[]
 }
 
-interface FormData {
+interface MemberFormData {
   name_mn: string; name_en: string
   role_mn: string; role_en: string
   desc_mn: string; desc_en: string
   location_mn: string; location_en: string
   district_mn: string; district_en: string
   image: string
+  imageFile: File | null
   type: string
   sort_order: number
 }
@@ -62,13 +63,14 @@ interface CategoryFormData {
   sort_order: number
 }
 
-const emptyForm: FormData = {
+const emptyForm: MemberFormData = {
   name_mn: '', name_en: '',
   role_mn: '', role_en: '',
   desc_mn: '', desc_en: '',
   location_mn: '', location_en: '',
   district_mn: '', district_en: '',
   image: '',
+  imageFile: null,
   type: '',
   sort_order: 0,
 }
@@ -90,7 +92,7 @@ const getCatLabel = (cat: CategoryAPI, langId: number) => {
 const getTrans = (translations: Translation[], langId: number) =>
   translations.find(t => t.language === langId)
 
-const memberToForm = (m: MemberAPI): FormData => {
+const memberToForm = (m: MemberAPI): MemberFormData => {
   const mn = getTrans(m.translations, 2)
   const en = getTrans(m.translations, 1)
   return {
@@ -100,21 +102,38 @@ const memberToForm = (m: MemberAPI): FormData => {
     location_mn: mn?.location || '', location_en: en?.location || '',
     district_mn: mn?.district || '', district_en: en?.district || '',
     image: m.image || '',
+    imageFile: null,
     type: m.type,
     sort_order: m.sort_order,
   }
 }
 
-const formToPayload = (form: FormData) => ({
-  type: form.type,
-  image: form.image,
-  sort_order: form.sort_order,
-  active: true,
-  translations: [
-    { language: 1, name: form.name_en, role: form.role_en, description: form.desc_en, location: form.location_en, district: form.district_en },
-    { language: 2, name: form.name_mn, role: form.role_mn, description: form.desc_mn, location: form.location_mn, district: form.district_mn },
-  ],
-})
+const formToPayload = (form: MemberFormData): globalThis.FormData => {
+  const fd = new globalThis.FormData()
+  fd.append('type', form.type)
+  fd.append('sort_order', String(form.sort_order))
+  fd.append('active', 'true')
+
+  // Image: send file if selected, otherwise send existing URL
+  if (form.imageFile) {
+    fd.append('image_file', form.imageFile)
+  } else if (form.image) {
+    fd.append('image', form.image)
+  }
+
+  // Translations as indexed keys for FormData
+  const translations = [
+    { language: '1', name: form.name_en, role: form.role_en, description: form.desc_en, location: form.location_en, district: form.district_en },
+    { language: '2', name: form.name_mn, role: form.role_mn, description: form.desc_mn, location: form.location_mn, district: form.district_mn },
+  ]
+  translations.forEach((tr, i) => {
+    Object.entries(tr).forEach(([key, val]) => {
+      fd.append(`translations[${i}][${key}]`, val)
+    })
+  })
+
+  return fd
+}
 
 /* ── Component ─────────────────────────────────────────────────────── */
 
@@ -126,7 +145,7 @@ export default function GovernanceTab() {
   const [loading, setLoading] = useState(true)
   const [modalOpen, setModalOpen] = useState(false)
   const [editingId, setEditingId] = useState<number | null>(null)
-  const [formData, setFormData] = useState<FormData>({ ...emptyForm })
+  const [formData, setFormData] = useState<MemberFormData>({ ...emptyForm })
   const [isSaving, setIsSaving] = useState(false)
   const [selectedMember, setSelectedMember] = useState<MemberAPI | null>(null)
   const [successMsg, setSuccessMsg] = useState('')
@@ -187,11 +206,12 @@ export default function GovernanceTab() {
     setIsSaving(true); setErrorMsg('')
     try {
       const payload = formToPayload(formData)
+      const config = { headers: { 'Content-Type': 'multipart/form-data' } }
       if (editingId) {
-        await axiosInstance.put(`/management/${editingId}/`, payload)
+        await axiosInstance.put(`/management/${editingId}/`, payload, config)
         setSuccessMsg('Амжилттай шинэчиллээ')
       } else {
-        await axiosInstance.post('/management/', payload)
+        await axiosInstance.post('/management/', payload, config)
         setSuccessMsg('Амжилттай нэмэгдлээ')
       }
       setModalOpen(false)
@@ -603,7 +623,7 @@ export default function GovernanceTab() {
 
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-2">Зураг</label>
-              <ImageUpload onChange={(url) => setFormData({ ...formData, image: url })} value={formData.image} />
+              <ImageUpload onChange={(url, file) => setFormData({ ...formData, image: url, imageFile: file || null })} value={formData.image} />
             </div>
           </div>
 
