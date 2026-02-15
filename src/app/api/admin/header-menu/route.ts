@@ -26,9 +26,17 @@ export async function GET() {
     if (!res.ok) {
       // Header бичлэг байхгүй бол хоосон бүтэц буцаана
       if (res.status === 404) {
+        console.warn('⚠️ Django: Header олдсонгүй (404)')
         return NextResponse.json({ id: null, logo: '', active: 1, menus: [], styles: [] })
       }
-      throw new Error(`Django backend алдаа: ${res.status}`)
+      // 500 алдаа — Django серверт асуудал (DB баганы алдаа гэх мэт)
+      // Алдааны дэлгэрэнгүйг лог хийнэ, хоосон бүтэц буцаана
+      const errorBody = await res.text().catch(() => '')
+      console.error(`❌ Django backend ${res.status} алдаа:`, errorBody.substring(0, 500))
+      return NextResponse.json(
+        { id: null, logo: '', active: 1, menus: [], styles: [], _error: `Django ${res.status}: ${errorBody.substring(0, 200)}` },
+        { status: 200 } // Admin UI-д 200 буцааж, алдааг _error field-д оруулна
+      )
     }
 
     const data = await res.json()

@@ -94,6 +94,12 @@ interface InternalHeaderStyle {
   logoSize: number
 }
 
+interface LogoHistoryItem {
+  id: number
+  url: string
+  created_at: string
+}
+
 // ============================================================================
 // CONFIGURATION
 // ============================================================================
@@ -152,6 +158,10 @@ export default function HeaderPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [isSavingToServer, setIsSavingToServer] = useState(false)
+  // Өгөгдлийн сангаас ачаалахад алдаа гарвал хадгална
+  const [fetchError, setFetchError] = useState<string | null>(null)
+  // Өгөгдөл хаанаас ирснийг илэрхийлнэ: 'db' = өгөгдлийн сан, 'empty' = хоосон, 'error' = алдаа
+  const [dataSource, setDataSource] = useState<'db' | 'empty' | 'error'>('empty')
   const [modalOpen, setModalOpen] = useState(false)
   const [editingItem, setEditingItem] = useState<MenuItem | null>(null)
   const [formData, setFormData] = useState(initialMenuItem)
@@ -169,32 +179,26 @@ export default function HeaderPage() {
     { label: 'Гадаад линк (өөрөө бичих)', value: 'custom' },
   ])
   const [loadingPages, setLoadingPages] = useState(false)
-  const [logoHistory, setLogoHistory] = useState<string[]>([])
+  const [logoHistory, setLogoHistory] = useState<LogoHistoryItem[]>([])
   const [isSavingLogo, setIsSavingLogo] = useState(false)
 
-  useEffect(() => {
-    // Load logo history from localStorage
+  // Өгөгдлийн сангаас логоны түүхийг татах
+  const fetchLogoHistory = async () => {
     try {
-      const saved = localStorage.getItem('headerLogoHistory')
-      if (saved) {
-        setLogoHistory(JSON.parse(saved))
+      const res = await fetch('/api/admin/logo-history')
+      if (res.ok) {
+        const data = await res.json()
+        setLogoHistory(data)
       }
     } catch (e) {
-      console.warn('Failed to load logo history:', e)
+      console.warn('Logo history татахад алдаа:', e)
     }
-    fetchData()
-  }, [])
+  }
 
-  // Save logo history to localStorage whenever it changes
   useEffect(() => {
-    try {
-      if (logoHistory.length > 0) {
-        localStorage.setItem('headerLogoHistory', JSON.stringify(logoHistory))
-      }
-    } catch (e) {
-      console.warn('Failed to save logo history:', e)
-    }
-  }, [logoHistory])
+    fetchData()
+    fetchLogoHistory()
+  }, [])
 
   // ============================================================================
   // ХУУДСЫН СОНГОЛТУУДЫГ ӨГӨГДЛИЙН САНГААС ТАТАХ
@@ -457,48 +461,69 @@ export default function HeaderPage() {
   // API FUNCTIONS
   // ============================================================================
 
+  // ============================================================================
+  // ӨГӨГДЛИЙН САНГААС ЦЭСҮҮДИЙГ ТАТАХ
+  // ============================================================================
+  // Энэ функц нь /api/admin/header-menu API-г дуудаж,
+  // Django backend → PostgreSQL-ээс header + меню + дэд цэс + орчуулгуудыг татна.
+  // Алдаа гарвал fetchError state-д алдааны мэдээллийг хадгална.
+  // ============================================================================
   const fetchData = async () => {
     try {
-      console.log('📥 Header data татаж байна...', `${API_BASE_URL}`)
+      setLoading(true)
+      setFetchError(null)
+      console.log('📥 Өгөгдлийн сангаас header мэдээлэл татаж байна...', `${API_BASE_URL}`)
+      
       const response = await fetch(`${API_BASE_URL}`)
       
       if (!response.ok) {
-        throw new Error(`Failed to fetch header data: ${response.status} ${response.statusText}`)
+        throw new Error(`Backend-ээс өгөгдөл авахад алдаа: ${response.status} ${response.statusText}`)
       }
 
-      const data: HeaderData = await response.json()
-      console.log('✅ API response авлаа:', data)
+      const data: HeaderData & { _error?: string } = await response.json()
+      
+      // Django backend-аас алдааны мэдээлэл ирсэн эсэхийг шалгах
+      if (data._error) {
+        console.warn('⚠️ Django backend алдаа:', data._error)
+        setFetchError(`Django серверт алдаа гарлаа: ${data._error}\n\nfix_cascade_constraints.sql файлыг production DB дээр ажиллуулна уу.`)
+        setDataSource('error')
+      }
+      
+      console.log('✅ Өгөгдлийн сангаас амжилттай авлаа:', data)
       console.log('  - Header ID:', data.id)
-      console.log('  - Menu count:', data.menus?.length || 0)
-      console.log('  - Has logo:', !!data.logo)
-      console.log('  - Full menus structure:', JSON.stringify(data.menus, null, 2))
+      console.log('  - Цэсний тоо:', data.menus?.length || 0)
+      console.log('  - Лого байгаа эсэх:', !!data.logo)
 
+      // Хэрэв цэс олдоогүй бол мэдэгдэл
       if (!data.menus || data.menus.length === 0) {
-        console.warn('⚠️ Header data-д цэс олдсонгүй, хоосон бүтэц ашигла')
+        console.warn('⚠️ Өгөгдлийн санд цэс олдсонгүй')
+        setDataSource('empty')
+      } else {
+        setDataSource('db')
       }
 
+      // API-ийн бүтцийг дотоод бүтэц рүү хувиргах
       const { items, style } = transformApiToInternal(data)
-      console.log('✅ Transform complete:', items.length, 'items')
+      console.log('✅ Хувиргалт дууслаа:', items.length, 'цэс')
       
       setHeaderId(data.id || null)
       setMenuItems(items)
       setHeaderStyle(style)
       setOriginalMenuItems(JSON.parse(JSON.stringify(items)))
       setOriginalHeaderStyle(JSON.parse(JSON.stringify(style)))
-      
-      setLoading(false)
+      setFetchError(null)
     } catch (error) {
-      console.error('❌ Error loading header:', error)
-      loadDefaultData()
+      // Алдааны мэдээллийг хэрэглэгчид харуулах
+      const errorMsg = error instanceof Error ? error.message : 'Тодорхойгүй алдаа'
+      console.error('❌ Өгөгдлийн сангаас татахад алдаа:', errorMsg)
+      setFetchError(`Өгөгдлийн сангаас цэсүүдийг татаж чадсангүй: ${errorMsg}`)
+      setDataSource('error')
+      // Хоосон өгөгдөл ашиглах
+      setMenuItems([])
+      setOriginalMenuItems([])
+    } finally {
       setLoading(false)
     }
-  }
-
-  const loadDefaultData = () => {
-    // TODO: Fetch from backend API instead of default data
-    const defaultItems: MenuItem[] = []
-    setMenuItems(defaultItems)
-    setOriginalMenuItems(JSON.parse(JSON.stringify(defaultItems)))
   }
 
   // ── Logo-only save function ──
@@ -536,9 +561,16 @@ export default function HeaderPage() {
       const result = await response.json()
       console.log('Logo saved successfully:', result)
       
-      // Add to logo history
-      if (!logoHistory.includes(headerStyle.logoUrl)) {
-        setLogoHistory(prev => [headerStyle.logoUrl, ...prev].slice(0, 10))
+      // Логоны түүхэнд нэмэх (DB)
+      try {
+        await fetch('/api/admin/logo-history', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url: headerStyle.logoUrl }),
+        })
+        fetchLogoHistory()
+      } catch (e) {
+        console.warn('Logo history нэмэхэд алдаа:', e)
       }
       
       alert('Логог амжилттай хадгалагдлаа! 🎉')
@@ -560,25 +592,33 @@ export default function HeaderPage() {
     setHeaderStyle({ ...headerStyle, logoUrl: url })
   }
 
-  const handleDeleteHistoryLogo = (url: string) => {
-    setLogoHistory(prev => prev.filter(l => l !== url))
+  const handleDeleteHistoryLogo = async (id: number) => {
+    try {
+      await fetch(`/api/admin/logo-history?id=${id}`, { method: 'DELETE' })
+      setLogoHistory(prev => prev.filter(l => l.id !== id))
+    } catch (e) {
+      console.warn('Logo history устгахад алдаа:', e)
+    }
   }
 
+  // ============================================================================
+  // ЦЭСҮҮДИЙГ ӨГӨГДЛИЙН САНД ХАДГАЛАХ
+  // ============================================================================
+  // Бүх цэсийн өгөгдлийг API руу илгээж, Django backend-аар дамжуулан
+  // PostgreSQL-д хадгална. Хадгалсны дараа DB-ээс дахин татаж шинэчлэнэ.
+  // ============================================================================
   const handleSaveAll = async () => {
     try {
       setSaving(true)
 
+      // Дотоод бүтцийг API бүтэц рүү хувиргах
       const apiData = transformInternalToApi()
       
-      // Validate header data
       if (!apiData.id && !apiData.logo) {
-        console.warn('Header ID эсвэл logo байхгүй, энэ нь алдаа болж болно')
+        console.warn('⚠️ Header ID эсвэл logo байхгүй')
       }
 
-      console.log('Header хадгалж байна...')
-      console.log('Menu items:', menuItems.length)
-      console.log('Header ID:', apiData.id)
-      console.log('Sending to API:', JSON.stringify(apiData, null, 2))
+      console.log('📤 Өгөгдлийн санд хадгалж байна...', menuItems.length, 'цэс')
       
       const response = await fetch(`${API_BASE_URL}`, {
         method: 'POST',
@@ -588,25 +628,24 @@ export default function HeaderPage() {
 
       if (!response.ok) {
         const errorText = await response.text()
-        console.error('Server error response:', errorText)
-        throw new Error(`Failed to save: ${response.status} ${response.statusText}\n${errorText}`)
+        console.error('❌ Хадгалахад серверийн алдаа:', errorText)
+        throw new Error(`Хадгалахад алдаа: ${response.status} ${response.statusText}\n${errorText}`)
       }
 
       const result = await response.json()
-      console.log('Save successful:', result)
+      console.log('✅ Амжилттай хадгалагдлаа:', result)
       
-      setOriginalMenuItems(JSON.parse(JSON.stringify(menuItems)))
-      setOriginalHeaderStyle(JSON.parse(JSON.stringify(headerStyle)))
+      // Хадгалсны дараа өгөгдлийн сангаас дахин ачаалж шинэчлэх
+      await fetchData()
       
       setSaveSuccess(true)
       setTimeout(() => setSaveSuccess(false), 4000)
       
-      // UI feedback
-      alert('Header үйлчилгээ амжилттай хадгалагдлаа! 🎉')
+      alert('Цэсүүд өгөгдлийн санд амжилттай хадгалагдлаа! 🎉')
     } catch (error) {
-      console.error('Error saving header:', error)
-      const errorMsg = error instanceof Error ? error.message : 'Unknown error'
-      alert(`Хадгалахад алдаа гарлаа:\n\n${errorMsg}\n\nConsole-г дарж дэлгэрүүлэн үзнэ үү. (F12 хэмжээ)`)
+      console.error('❌ Хадгалахад алдаа:', error)
+      const errorMsg = error instanceof Error ? error.message : 'Тодорхойгүй алдаа'
+      alert(`Хадгалахад алдаа гарлаа:\n\n${errorMsg}\n\nConsole-г нээж дэлгэрүүлэн үзнэ үү (F12).`)
     } finally {
       setSaving(false)
     }
@@ -909,13 +948,57 @@ export default function HeaderPage() {
         {/* MENU TAB */}
         {activeTab === 'menu' && (
           <div className="space-y-6">
+            {/* ── Алдааны мэдэгдэл (backend-тай холбогдож чадаагүй бол) ── */}
+            {fetchError && (
+              <div className="p-4 bg-red-50 border border-red-200 rounded-xl flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
+                  <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <div className="flex-1">
+                  <h4 className="text-sm font-semibold text-red-900">Өгөгдлийн сантай холбогдоход алдаа гарлаа</h4>
+                  <p className="text-xs text-red-700 mt-0.5">{fetchError}</p>
+                  <p className="text-xs text-red-500 mt-1">Django backend серверийг ажиллуулсан эсэхээ шалгана уу.</p>
+                </div>
+                <button
+                  onClick={() => fetchData()}
+                  className="px-3 py-2 text-xs font-medium text-red-700 bg-red-100 hover:bg-red-200 rounded-lg transition-colors"
+                >
+                  🔄 Дахин оролдох
+                </button>
+              </div>
+            )}
+
+            {/* ── Өгөгдлийн сангаас амжилттай ачаалагдсан мэдэгдэл ── */}
+            {dataSource === 'db' && !loading && !fetchError && (
+              <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center gap-2 mb-4">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                <span className="text-xs text-emerald-700">
+                  ✅ Цэсүүд өгөгдлийн сангаас (PostgreSQL) амжилттай ачаалагдлаа — {menuItems.length} цэс
+                </span>
+              </div>
+            )}
+
             {/* Action Bar */}
             <div className="flex items-center justify-between p-4 bg-white rounded-xl border border-slate-200 shadow-sm">
               <div>
                 <h3 className="text-sm font-semibold text-slate-900">Цэсний удирдлага</h3>
-                <p className="text-xs text-slate-500 mt-0.5">Веб сайтын navigation цэс тохируулах</p>
+                <p className="text-xs text-slate-500 mt-0.5">Веб сайтын navigation цэс — өгөгдлийн сангаас</p>
               </div>
               <div className="flex items-center gap-3">
+                {/* Өгөгдлийн сангаас дахин ачаалах товч */}
+                <button
+                  onClick={() => fetchData()}
+                  disabled={loading}
+                  className="px-4 py-2.5 text-sm font-medium text-teal-700 bg-teal-50 border border-teal-200 rounded-lg hover:bg-teal-100 transition-colors flex items-center gap-2 disabled:opacity-50"
+                  title="Өгөгдлийн сангаас дахин татах"
+                >
+                  <svg className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                  {loading ? 'Ачаалж байна...' : 'DB-ээс ачаалах'}
+                </button>
                 <button
                   onClick={handleReset}
                   className="px-4 py-2.5 text-sm font-medium text-slate-600 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors flex items-center gap-2"
@@ -1112,7 +1195,7 @@ export default function HeaderPage() {
               </div>
             </div>
 
-            {/* Menu Tree */}
+            {/* Цэсний жагсаалт — өгөгдлийн сангаас */}
             <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
               <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between bg-gradient-to-r from-slate-50 to-white">
                 <div className="flex items-center gap-2">
@@ -1121,6 +1204,13 @@ export default function HeaderPage() {
                   </svg>
                   <span className="font-semibold text-slate-900">Цэсний жагсаалт</span>
                   <span className="text-xs text-slate-400">({menuItems.length} цэс)</span>
+                  {/* Өгөгдлийн эх сурвалжийг харуулах */}
+                  {dataSource === 'db' && (
+                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 font-medium">PostgreSQL</span>
+                  )}
+                  {dataSource === 'error' && (
+                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-red-100 text-red-700 font-medium">Холболтын алдаа</span>
+                  )}
                 </div>
                 <div className="flex items-center gap-1">
                   <button onClick={expandAll} className="px-2.5 py-1.5 text-xs text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors">
@@ -1140,7 +1230,7 @@ export default function HeaderPage() {
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
-                    <p className="text-sm text-slate-500">Цэсүүдийг уншиж байна...</p>
+                    <p className="text-sm text-slate-500">Өгөгдлийн сангаас цэсүүдийг татаж байна...</p>
                   </div>
                 </div>
               ) : rootItems.length === 0 ? (
@@ -1152,12 +1242,24 @@ export default function HeaderPage() {
                       </svg>
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-slate-700">Цэс байхгүй байна</p>
-                      <p className="text-xs text-slate-500 mt-1">Эхний цэсээ нэмж эхлээрэй</p>
+                      <p className="text-sm font-medium text-slate-700">
+                        {fetchError ? 'Өгөгдлийн сантай холбогдож чадсангүй' : 'Өгөгдлийн санд цэс олдсонгүй'}
+                      </p>
+                      <p className="text-xs text-slate-500 mt-1">
+                        {fetchError 
+                          ? 'Django backend серверийг ажиллуулаад "DB-ээс ачаалах" товчийг дарна уу' 
+                          : 'Эхний цэсээ нэмж эхлээрэй'}
+                      </p>
                     </div>
-                    <button onClick={() => setModalOpen(true)} className="mt-2 px-4 py-2 bg-teal-600 text-white text-sm rounded-lg hover:bg-teal-700 transition-colors">
-                      ➕ Цэс нэмэх
-                    </button>
+                    <div className="flex gap-2 mt-2">
+                      {/* Өгөгдлийн сангаас дахин татах */}
+                      <button onClick={() => fetchData()} className="px-4 py-2 bg-teal-50 text-teal-700 border border-teal-200 text-sm rounded-lg hover:bg-teal-100 transition-colors">
+                        🔄 DB-ээс дахин ачаалах
+                      </button>
+                      <button onClick={() => setModalOpen(true)} className="px-4 py-2 bg-teal-600 text-white text-sm rounded-lg hover:bg-teal-700 transition-colors">
+                        ➕ Цэс нэмэх
+                      </button>
+                    </div>
                   </div>
                 </div>
               ) : (
@@ -1410,54 +1512,24 @@ export default function HeaderPage() {
 
                 {logoHistory.length > 0 && (
                   <div className="p-4 bg-slate-50 rounded-lg border border-slate-200">
-                    <label className="block text-sm font-semibold text-slate-900 mb-3">Логоны түүх</label>
-                    <p className="text-xs text-slate-500 mb-3">Өмнө ашигласан логонууд:</p>
+                    <label className="block text-sm font-semibold text-slate-900 mb-3">Хадгалагдсан логонууд</label>
+                    <p className="text-xs text-slate-500 mb-3">Өгөгдлийн санд хадгалагдсан логонууд (дарж сонгоно):</p>
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 max-h-48 overflow-y-auto">
-                      {logoHistory.map((url, idx) => (
-                        <div key={idx} className="relative group">
+                      {logoHistory.map((item) => (
+                        <div key={item.id} className="relative group">
                           <button
-                            onClick={() => handleApplyHistoryLogo(url)}
+                            onClick={() => handleApplyHistoryLogo(item.url)}
                             className="w-full h-16 rounded-lg border border-slate-200 hover:border-teal-500 overflow-hidden flex items-center justify-center bg-white hover:bg-slate-50 transition-colors"
                           >
                             <img
-                              src={url}
-                              alt={`Logo ${idx}`}
+                              src={item.url}
+                              alt={`Logo ${item.id}`}
                               className="max-h-12 max-w-full object-contain"
                               onError={() => {}}
                             />
                           </button>
                           <button
-                            onClick={() => handleDeleteHistoryLogo(url)}
-                            className="absolute -top-2 -right-2 opacity-0 group-hover:opacity-100 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center text-xs hover:bg-red-600 transition-all"
-                          >
-                            ×
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {logoHistory.length > 0 && (
-                  <div className="p-4 bg-slate-50 rounded-lg border border-slate-200">
-                    <label className="block text-sm font-semibold text-slate-900 mb-3">Логоны түүх</label>
-                    <p className="text-xs text-slate-500 mb-3">Өмнө ашигласан логонууд:</p>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 max-h-48 overflow-y-auto">
-                      {logoHistory.map((url, idx) => (
-                        <div key={idx} className="relative group">
-                          <button
-                            onClick={() => handleApplyHistoryLogo(url)}
-                            className="w-full h-16 rounded-lg border border-slate-200 hover:border-teal-500 overflow-hidden flex items-center justify-center bg-white hover:bg-slate-50 transition-colors"
-                          >
-                            <img
-                              src={url}
-                              alt={`Logo ${idx}`}
-                              className="max-h-12 max-w-full object-contain"
-                              onError={() => {}}
-                            />
-                          </button>
-                          <button
-                            onClick={() => handleDeleteHistoryLogo(url)}
+                            onClick={() => handleDeleteHistoryLogo(item.id)}
                             className="absolute -top-2 -right-2 opacity-0 group-hover:opacity-100 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center text-xs hover:bg-red-600 transition-all"
                           >
                             ×
