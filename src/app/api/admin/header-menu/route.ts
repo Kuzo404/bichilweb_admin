@@ -103,10 +103,37 @@ export async function POST(request: NextRequest) {
       console.log('✅ Header үүсгэгдлээ. ID:', headerId)
     }
 
-    // Logo-only save: if no menus/styles, skip menu/style logic
+    // ── 2. Хуучин цэснүүдийг ҮРГЭЛЖ устгах ──
+    console.log('🗑️ Хуучин цэснүүдийг устгаж байна...')
+    const existingRes = await fetch(`${BACKEND_URL}/headers/${headerId}/`, {
+      headers: { 'Accept': 'application/json' },
+    })
+
+    if (existingRes.ok) {
+      const existing = await existingRes.json()
+      const existingMenus = existing.menus || []
+      let deletedCount = { tertiary: 0, submenu: 0, menu: 0 }
+
+      // Гүнзгийрүүлж устгах: tertiary → submenu → menu
+      for (const menu of existingMenus) {
+        for (const sub of (menu.submenus || [])) {
+          for (const ter of (sub.tertiary_menus || [])) {
+            const delRes = await fetch(`${BACKEND_URL}/header-tertiary/${ter.id}/`, { method: 'DELETE' })
+            if (delRes.ok) deletedCount.tertiary++
+          }
+          const delRes = await fetch(`${BACKEND_URL}/header-submenu/${sub.id}/`, { method: 'DELETE' })
+          if (delRes.ok) deletedCount.submenu++
+        }
+        const delRes = await fetch(`${BACKEND_URL}/header-menu/${menu.id}/`, { method: 'DELETE' })
+        if (delRes.ok) deletedCount.menu++
+      }
+      console.log(`  ✅ Устгагдлаа: ${deletedCount.menu} меню, ${deletedCount.submenu} дэд цэс, ${deletedCount.tertiary} 3-р цэс`)
+    } else {
+      console.log('  ℹ️ Хуучин цэс олдсонгүй')
+    }
+
+    // ── 3. Шинэ цэснүүдийг үүсгэх ──
     if (body.menus && body.menus.length > 0) {
-      // ── 2. Шинэ цэснүүдийг үүсгэх (хуучин цэсүүдийг УСТГАХГҮЙ) ──
-      console.log('➕ Шинэ цэснүүдийг үүсгэж байна...')
       for (const menu of (body.menus || [])) {
         // 1-р түвшин: Үндсэн цэс
         const menuPayload = {
