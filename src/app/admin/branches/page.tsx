@@ -21,12 +21,17 @@ interface BranchAPI {
   name: string
   name_en: string
   location: string
+  location_en?: string
   image?: string
   image_url?: string | null
   area?: string | null
+  area_en?: string | null
   city?: string | null
+  city_en?: string | null
   district?: string | null
+  district_en?: string | null
   open?: string | null
+  open_en?: string | null
   time?: string | null
   latitude: string  
   longitude: string 
@@ -41,12 +46,17 @@ interface Branch {
   name: string
   name_en: string
   location: string
+  location_en: string
   image?: string | null
   image_url: string | null
   area?: string | null
+  area_en?: string | null
   city?: string | null
+  city_en?: string | null
   district?: string | null
+  district_en?: string | null
   open?: string | null
+  open_en?: string | null
   time?: string | null
   latitude: number | null
   longitude: number | null
@@ -60,14 +70,19 @@ interface BranchFormData {
   name: string
   name_en: string
   location: string
+  location_en: string
   open: string
+  open_en: string
   time: string
   latitude: number | null
   longitude: number | null
   phones: string[]
   area: string
+  area_en: string
   city: string
+  city_en: string
   district: string
+  district_en: string
   imageFile: File | null
   category_id: number | null
 }
@@ -80,6 +95,7 @@ interface BranchPageSettings {
   popup_btn_bg: string
   popup_btn_text: string
   popup_btn_label: string
+  popup_btn_label_en: string
   card_bg: string
   card_border: string
   card_title_color: string
@@ -88,11 +104,13 @@ interface BranchPageSettings {
   card_btn_bg: string
   card_btn_text: string
   card_btn_label: string
+  card_btn_label_en: string
   marker_color: string
   marker_selected_color: string
   map_btn_bg: string
   map_btn_text: string
   map_btn_label: string
+  map_btn_label_en: string
 }
 
 const defaultPageSettings: BranchPageSettings = {
@@ -103,6 +121,7 @@ const defaultPageSettings: BranchPageSettings = {
   popup_btn_bg: '#0d9488',
   popup_btn_text: '#ffffff',
   popup_btn_label: 'Чиглэл авах',
+  popup_btn_label_en: '',
   card_bg: '#ffffff',
   card_border: '#e5e7eb',
   card_title_color: '#111827',
@@ -111,25 +130,32 @@ const defaultPageSettings: BranchPageSettings = {
   card_btn_bg: '#f0fdfa',
   card_btn_text: '#0d9488',
   card_btn_label: 'Газрын зургаас харах',
+  card_btn_label_en: '',
   marker_color: '#0d9488',
   marker_selected_color: '#0f766e',
   map_btn_bg: '#0d9488',
   map_btn_text: '#ffffff',
   map_btn_label: 'Газрын зураг',
+  map_btn_label_en: '',
 }
 
 const initialFormData: BranchFormData = {
   name: '',
   name_en: '',
   location: '',
+  location_en: '',
   open: 'Даваа-Баасан',
+  open_en: '',
   time: '09:00-18:00',
   latitude: 47.9184,
   longitude: 106.9177,
   phones: [''],
   area: '',
+  area_en: '',
   city: '',
+  city_en: '',
   district: '',
+  district_en: '',
   imageFile: null,
   category_id: null,
 }
@@ -137,6 +163,11 @@ const initialFormData: BranchFormData = {
 const transformAPIToBranch = (apiData: BranchAPI): Branch => ({
   ...apiData,
   name_en: apiData.name_en || '',
+  location_en: apiData.location_en || '',
+  area_en: apiData.area_en || '',
+  city_en: apiData.city_en || '',
+  district_en: apiData.district_en || '',
+  open_en: apiData.open_en || '',
   image: apiData.image_url || apiData.image || null,
   image_url: apiData.image_url ?? null,
   latitude: apiData.latitude ? parseFloat(apiData.latitude) : null,
@@ -295,10 +326,15 @@ export default function BranchesPage() {
       formDataToSend.append('name', formData.name)
       formDataToSend.append('name_en', formData.name_en || '')
       formDataToSend.append('location', formData.location)
+      formDataToSend.append('location_en', formData.location_en || '')
       formDataToSend.append('area', formData.area || '')
+      formDataToSend.append('area_en', formData.area_en || '')
       formDataToSend.append('city', formData.city || '')
+      formDataToSend.append('city_en', formData.city_en || '')
       formDataToSend.append('district', formData.district || '')
+      formDataToSend.append('district_en', formData.district_en || '')
       formDataToSend.append('open', formData.open || '')
+      formDataToSend.append('open_en', formData.open_en || '')
       formDataToSend.append('time', formData.time || '')
       formDataToSend.append('latitude', formData.latitude !== null ? formData.latitude.toString() : '0')
       formDataToSend.append('longitude', formData.longitude !== null ? formData.longitude.toString() : '0')
@@ -415,7 +451,9 @@ export default function BranchesPage() {
       name: branch.name,
       name_en: branch.name_en || '',
       location: branch.location,
+      location_en: branch.location_en || '',
       open: branch.open || 'Даваа-Баасан',
+      open_en: branch.open_en || '',
       time: branch.time || '09:00-18:00',
       latitude: branch.latitude || 47.9184,
       longitude: branch.longitude || 106.9177,
@@ -423,8 +461,11 @@ export default function BranchesPage() {
         ? branch.phones.map(p => p.phone) 
         : [''],
       area: branch.area || '',
+      area_en: branch.area_en || '',
       city: branch.city || '',
+      city_en: branch.city_en || '',
       district: branch.district || '',
+      district_en: branch.district_en || '',
       imageFile: null,
       category_id: branch.category_id ?? null,
     })
@@ -720,6 +761,20 @@ export default function BranchesPage() {
                 disabled={submitting}
               />
             </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                Хаяг (Англи)
+              </label>
+              <textarea 
+                value={formData.location_en} 
+                onChange={(e) => setFormData(prev => ({ ...prev, location_en: e.target.value }))} 
+                rows={2} 
+                className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 outline-none transition-all resize-none"
+                placeholder="Sukhbaatar Square 1"
+                disabled={submitting}
+              />
+            </div>
           </div>
 
           {/* Image Upload */}
@@ -796,6 +851,43 @@ export default function BranchesPage() {
             </div>
           </div>
 
+          {/* Location Details (English) */}
+          <div className="grid grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Дүүрэг/Сум (Англи)</label>
+              <input 
+                type="text" 
+                value={formData.area_en || ''} 
+                onChange={(e) => setFormData(prev => ({ ...prev, area_en: e.target.value }))} 
+                className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 outline-none transition-all"
+                placeholder="Sukhbaatar District"
+                disabled={submitting}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Хот/Аймаг (Англи)</label>
+              <input 
+                type="text" 
+                value={formData.city_en || ''} 
+                onChange={(e) => setFormData(prev => ({ ...prev, city_en: e.target.value }))} 
+                className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 outline-none transition-all"
+                placeholder="Ulaanbaatar"
+                disabled={submitting}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Хороо/Баг (Англи)</label>
+              <input 
+                type="text" 
+                value={formData.district_en || ''} 
+                onChange={(e) => setFormData(prev => ({ ...prev, district_en: e.target.value }))} 
+                className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 outline-none transition-all"
+                placeholder="Khoroo 1"
+                disabled={submitting}
+              />
+            </div>
+          </div>
+
           {/* Working Hours */}
           <div className="grid grid-cols-2 gap-4">
             <div>
@@ -809,6 +901,19 @@ export default function BranchesPage() {
                 disabled={submitting}
               />
             </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Ажлын өдрүүд (Англи)</label>
+              <input 
+                type="text" 
+                value={formData.open_en || ''} 
+                onChange={(e) => setFormData(prev => ({ ...prev, open_en: e.target.value }))} 
+                className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 outline-none transition-all"
+                placeholder="Monday-Friday"
+                disabled={submitting}
+              />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">Ажлын цаг</label>
               <input 
@@ -1171,6 +1276,16 @@ export default function BranchesPage() {
                 className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 outline-none"
               />
             </div>
+            <div className="mt-2">
+              <label className="block text-xs font-medium text-gray-600 mb-1">Товчны текст (Англи)</label>
+              <input
+                type="text"
+                value={pageSettings.popup_btn_label_en}
+                onChange={(e) => setPageSettings(p => ({ ...p, popup_btn_label_en: e.target.value }))}
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 outline-none"
+                placeholder="Get Directions"
+              />
+            </div>
           </div>
 
           {/* ── Card Colors ── */}
@@ -1197,6 +1312,16 @@ export default function BranchesPage() {
                 className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 outline-none"
               />
             </div>
+            <div className="mt-2">
+              <label className="block text-xs font-medium text-gray-600 mb-1">Товчны текст (Англи)</label>
+              <input
+                type="text"
+                value={pageSettings.card_btn_label_en}
+                onChange={(e) => setPageSettings(p => ({ ...p, card_btn_label_en: e.target.value }))}
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 outline-none"
+                placeholder="View on Map"
+              />
+            </div>
           </div>
 
           {/* ── Map Toggle Button ── */}
@@ -1218,6 +1343,16 @@ export default function BranchesPage() {
                 className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 outline-none"
               />
               <p className="text-[10px] text-gray-400 mt-1">Товчны ард автоматаар &ldquo;хаах / нээх&rdquo; нэмэгдэнэ</p>
+            </div>
+            <div className="mt-2">
+              <label className="block text-xs font-medium text-gray-600 mb-1">Товчны текст (Англи)</label>
+              <input
+                type="text"
+                value={pageSettings.map_btn_label_en}
+                onChange={(e) => setPageSettings(p => ({ ...p, map_btn_label_en: e.target.value }))}
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 outline-none"
+                placeholder="Map"
+              />
             </div>
           </div>
 
