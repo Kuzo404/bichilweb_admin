@@ -99,6 +99,8 @@ interface DynamicSection {
   title_weight: string
   title_family: string
   title_textalign: string
+  image_url: string
+  image_position: 'left' | 'right'
   visible: boolean
   blocks: DynamicBlock[]
 }
@@ -138,6 +140,8 @@ const newSection = (label?: string): DynamicSection => ({
   title_weight: '700',
   title_family: 'inherit',
   title_textalign: 'left',
+  image_url: '',
+  image_position: 'right',
   visible: true,
   blocks: [newBlock()],
 })
@@ -277,6 +281,8 @@ function transformAPIToIntroData(apiData: APIAboutPage): IntroData {
       title_weight: mnTitle?.fontweight || '700',
       title_family: mnTitle?.fontfamily || 'inherit',
       title_textalign: mnTitle?.textalign || 'left',
+      image_url: (section as any).image || '',
+      image_position: ((section as any).image_position || 'right') as 'left' | 'right',
       visible: section.visible,
       blocks: [],
     }
@@ -322,6 +328,8 @@ function transformIntroDataToAPI(data: IntroData) {
     sections: data.sections.map((section, sIdx) => ({
       index: sIdx,
       visible: section.visible,
+      image: section.image_url || '',
+      image_position: section.image_position || 'right',
       translations: [
         {
           language: 1,
@@ -679,17 +687,21 @@ export default function IntroTab() {
         {showPreview && (
           <div className="overflow-y-auto max-h-[75vh] p-6">
             <div className="space-y-12 animate-in fade-in slide-in-from-bottom-8 duration-500">
-              {data.sections.map((section, sIdx) => (
-                <div key={sIdx} className={`grid grid-cols-1 ${sIdx === 0 ? 'md:grid-cols-2' : ''} gap-8 items-center border-t border-slate-200 pt-6 first:border-t-0 first:pt-0`}>
-                  {/* Эхний хэсэгт зураг харуулна */}
-                  {sIdx === 0 && data.image_url && (
-                    <div className="order-2 md:order-1">
-                      <div className={`relative w-full ${data.image_height || 'aspect-video'} rounded-2xl overflow-hidden shadow-lg`}>
-                        <img src={data.image_url} alt="Бидний тухай" className="w-full h-full object-cover" />
+              {data.sections.map((section, sIdx) => {
+                const hasImage = sIdx === 0 ? (data.image_url || section.image_url) : section.image_url;
+                const imageUrl = sIdx === 0 ? (data.image_url || section.image_url) : section.image_url;
+                const imgPos = section.image_position || 'right';
+                return (
+                <div key={sIdx} className={`grid grid-cols-1 ${hasImage ? 'md:grid-cols-2' : ''} gap-8 items-center border-t border-slate-200 pt-6 first:border-t-0 first:pt-0`}>
+                  {/* Зураг */}
+                  {hasImage && (
+                    <div className={imgPos === 'left' ? 'order-1' : 'order-2 md:order-1'}>
+                      <div className={`relative w-full ${sIdx === 0 ? (data.image_height || 'aspect-video') : 'aspect-video'} rounded-2xl overflow-hidden shadow-lg`}>
+                        <img src={imageUrl} alt={section.label} className="w-full h-full object-cover" />
                       </div>
                     </div>
                   )}
-                  <div className={`space-y-4 ${sIdx === 0 && data.image_url ? 'order-1 md:order-2' : ''}`}>
+                  <div className={`space-y-4 ${hasImage ? (imgPos === 'left' ? 'order-2' : 'order-1 md:order-2') : ''}`}>
                     {/* Хэсгийн шошго */}
                     <div className="inline-block bg-teal-50 text-teal-700 px-4 py-1.5 rounded-full text-xs font-medium">
                       {section.label}
@@ -724,7 +736,8 @@ export default function IntroTab() {
                     </div>
                   </div>
                 </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}
@@ -979,6 +992,61 @@ export default function IntroTab() {
                         bgClass="bg-teal-100/40 border-teal-200"
                       />
                     </div>
+                  </div>
+
+                  {/* Хэсгийн зураг (Section Image) */}
+                  <div className="border border-purple-200 rounded-lg p-4 bg-purple-50/20">
+                    <h5 className="text-sm font-semibold text-gray-900 mb-2">Хэсгийн зураг (заавал биш)</h5>
+                    <p className="text-xs text-gray-500 mb-3">Текстийн хажууд харагдах зураг</p>
+                    <ImageUpload
+                      value={section.image_url}
+                      onChange={(url: string) => updateSection(sIdx, 'image_url', url)}
+                      label="Зураг оруулах"
+                    />
+                    {section.image_url && (
+                      <div className="mt-3 flex items-center gap-3">
+                        <label className="block text-xs font-medium text-gray-700">Зургийн байрлал:</label>
+                        <div className="flex gap-2">
+                          <button
+                            type="button"
+                            onClick={() => updateSection(sIdx, 'image_position', 'left')}
+                            className={clsx(
+                              'px-3 py-1.5 text-xs font-medium rounded-md border transition-colors flex items-center gap-1.5',
+                              section.image_position === 'left'
+                                ? 'bg-purple-600 text-white border-purple-600'
+                                : 'bg-white text-gray-700 border-gray-200 hover:border-purple-300 hover:bg-purple-50'
+                            )}>
+                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14" />
+                            </svg>
+                            Зүүн тал
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => updateSection(sIdx, 'image_position', 'right')}
+                            className={clsx(
+                              'px-3 py-1.5 text-xs font-medium rounded-md border transition-colors flex items-center gap-1.5',
+                              section.image_position === 'right'
+                                ? 'bg-purple-600 text-white border-purple-600'
+                                : 'bg-white text-gray-700 border-gray-200 hover:border-purple-300 hover:bg-purple-50'
+                            )}>
+                            Баруун тал
+                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14" />
+                            </svg>
+                          </button>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => updateSection(sIdx, 'image_url', '')}
+                          className="ml-auto text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition-colors text-xs"
+                          title="Зургийг устгах">
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        </button>
+                      </div>
+                    )}
                   </div>
 
                   {/* Параграфууд (Блокууд) */}

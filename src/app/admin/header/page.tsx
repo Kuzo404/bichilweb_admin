@@ -276,6 +276,10 @@ export default function HeaderPage() {
           }
         }
 
+        // ── Танилцуулга (About) ──
+        options.push({ label: '─── Танилцуулга ───', value: '', disabled: true })
+        options.push({ label: '  Танилцуулга (Бидний тухай)', value: '/about' })
+
         // Гадаад линк (өөрөө бичих) сонголт
         options.push({ label: '─── Бусад ───', value: '', disabled: true })
         options.push({ label: 'Гадаад линк (өөрөө бичих)', value: 'custom' })
