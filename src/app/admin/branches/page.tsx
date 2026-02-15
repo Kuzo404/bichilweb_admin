@@ -411,7 +411,7 @@ export default function BranchesPage() {
       imageFile: null,
       category_id: branch.category_id ?? null,
     })
-    setImagePreview(branch.image || '')
+    setImagePreview(branch.image_url?.startsWith('http') ? branch.image_url : (branch.image_url ? `${process.env.NEXT_PUBLIC_MEDIA_URL || 'http://127.0.0.1:8000'}${branch.image_url}` : ''))
     setModalOpen(true)
   }
 
@@ -486,7 +486,7 @@ export default function BranchesPage() {
         <div className="w-16 h-16 rounded-lg overflow-hidden bg-gray-100 flex items-center justify-center">
           {branch.image ? (
             <img 
-              src={`${process.env.NEXT_PUBLIC_MEDIA_URL || 'http://127.0.0.1:8000'}${branch.image_url}`} 
+              src={branch.image_url?.startsWith('http') ? branch.image_url : `${process.env.NEXT_PUBLIC_MEDIA_URL || 'http://127.0.0.1:8000'}${branch.image_url}`} 
               alt={branch.name} 
               className="w-full h-full object-cover"
               onError={(e) => {

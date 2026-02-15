@@ -280,6 +280,10 @@ export default function HeaderPage() {
         options.push({ label: '─── Танилцуулга ───', value: '', disabled: true })
         options.push({ label: '  Танилцуулга (Бидний тухай)', value: '/about' })
 
+        // ── Салбарууд (Branches) ──
+        options.push({ label: '─── Салбарууд ───', value: '', disabled: true })
+        options.push({ label: '  Салбарууд', value: '/branches' })
+
         // Гадаад линк (өөрөө бичих) сонголт
         options.push({ label: '─── Бусад ───', value: '', disabled: true })
         options.push({ label: 'Гадаад линк (өөрөө бичих)', value: 'custom' })
