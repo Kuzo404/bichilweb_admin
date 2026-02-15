@@ -154,10 +154,21 @@ export default function HeroPage() {
     setModalOpen(true)
   }
 
+  const MAX_VIDEO_SIZE = 100 * 1024 * 1024 // 100MB (~2 минут)
+
   const handleSave = async () => {
     if (!editingSlide && !selectedFile) {
       alert('Desktop зураг эсвэл бичлэг сонгоно уу')
       return
+    }
+
+    // Видео хэмжээ шалгах (100MB = ~2 минут)
+    const allFiles = [selectedFile, tabletSelectedFile, mobileSelectedFile].filter(Boolean) as File[]
+    for (const f of allFiles) {
+      if (f.type.startsWith('video/') && f.size > MAX_VIDEO_SIZE) {
+        alert(`"${f.name}" файл хэт том байна (${(f.size / (1024*1024)).toFixed(1)}MB).\nХамгийн ихдээ ${MAX_VIDEO_SIZE / (1024*1024)}MB (~2 минут) видео хадгалах боломжтой.`)
+        return
+      }
     }
 
     try {

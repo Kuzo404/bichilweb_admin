@@ -4,7 +4,7 @@ const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api/v
 
 const axiosInstance: AxiosInstance = axios.create({
   baseURL: BASE_URL,
-  timeout: 120000, 
+  timeout: 300000, // 5 минут — видео upload удаан байж болно
   headers: {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
