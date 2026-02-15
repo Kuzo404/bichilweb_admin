@@ -4,6 +4,7 @@ import AdminLayout from '@/components/AdminLayout'
 import Modal from '@/components/Modal'
 import ImageUpload from '@/components/ImageUpload'
 import { Input, Textarea, Select, Button } from '@/components/FormElements'
+import RichTextEditor from '@/components/RichTextEditor'
 import { PlusIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/outline'
 import Image from 'next/image'
 import { axiosInstance } from '@/lib/axios'
@@ -287,7 +288,8 @@ export default function NewsPage() {
 
   useEffect(() => {
     if (!editingNews && formData.title_en) {
-      const autoSlug = formData.title_en
+      const plainTitle = formData.title_en.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ')
+      const autoSlug = plainTitle
         .toLowerCase()
         .trim()
         .replace(/[^\w\s-]/g, '')
@@ -320,18 +322,40 @@ export default function NewsPage() {
     if (!url) return ''
     try {
       const u = new URL(url)
-      if (u.hostname.includes('youtube.com')) {
+      const host = u.hostname.toLowerCase()
+      // YouTube
+      if (host.includes('youtube.com')) {
         const vid = u.searchParams.get('v')
         return vid ? `https://www.youtube.com/embed/${vid}` : ''
       }
-      if (u.hostname === 'youtu.be') {
+      if (host === 'youtu.be') {
         const vid = u.pathname.replace('/', '')
         return vid ? `https://www.youtube.com/embed/${vid}` : ''
       }
-      return ''
+      // Facebook video
+      if (host.includes('facebook.com') || host.includes('fb.watch')) {
+        return `https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(url)}&show_text=false`
+      }
+      // TikTok
+      if (host.includes('tiktok.com')) {
+        const match = url.match(/\/video\/(\d+)/)
+        if (match) return `https://www.tiktok.com/embed/v2/${match[1]}`
+        return url
+      }
+      // Instagram
+      if (host.includes('instagram.com')) {
+        const clean = url.split('?')[0].replace(/\/$/, '')
+        return `${clean}/embed`
+      }
+      // Generic URL — return as-is for iframe embed
+      return url
     } catch {
       return ''
     }
+  }
+
+  const isValidUrl = (url: string) => {
+    try { new URL(url); return true } catch { return false }
   }
 
   const PinBadge = () => (
@@ -356,14 +380,16 @@ export default function NewsPage() {
     }
   }
 
+  const stripHtml = (html: string) => html.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim()
+
   const validateForm = (): Record<string, string> => {
     const errors: Record<string, string> = {}
-    if (!formData.title_mn.trim()) errors.title_mn = 'Монгол гарчиг оруулна уу'
-    if (!formData.title_en.trim()) errors.title_en = 'Англи гарчиг оруулна уу'
-    if (!formData.excerpt_mn.trim()) errors.excerpt_mn = 'Монгол товч тайлбар оруулна уу'
-    if (!formData.excerpt_en.trim()) errors.excerpt_en = 'Англи товч тайлбар оруулна уу'
-    if (!formData.content_mn.trim()) errors.content_mn = 'Монгол агуулга оруулна уу'
-    if (!formData.content_en.trim()) errors.content_en = 'Англи агуулга оруулна уу'
+    if (!stripHtml(formData.title_mn)) errors.title_mn = 'Монгол гарчиг оруулна уу'
+    if (!stripHtml(formData.title_en)) errors.title_en = 'Англи гарчиг оруулна уу'
+    if (!stripHtml(formData.excerpt_mn)) errors.excerpt_mn = 'Монгол товч тайлбар оруулна уу'
+    if (!stripHtml(formData.excerpt_en)) errors.excerpt_en = 'Англи товч тайлбар оруулна уу'
+    if (!stripHtml(formData.content_mn)) errors.content_mn = 'Монгол агуулга оруулна уу'
+    if (!stripHtml(formData.content_en)) errors.content_en = 'Англи агуулга оруулна уу'
     if (!formData.bannerImage && !bannerImageFile) errors.bannerImage = 'Үндсэн зураг заавал оруулна уу'
 
     const invalidLinks = (formData.socialLinks || []).filter((link) => {
@@ -371,7 +397,7 @@ export default function NewsPage() {
       try { new URL(link.url); return false } catch { return true }
     })
     if (invalidLinks.length > 0) errors.socialLinks = 'Сошиал холбооснуудын URL буруу байна'
-    if (videoUrl && !toEmbedUrl(videoUrl)) errors.video = 'YouTube видеоны URL буруу байна'
+    if (videoUrl && !isValidUrl(videoUrl)) errors.video = 'Видео URL буруу байна'
 
     if (formData.isPinnedNews && !editingNews) {
       const pinnedInCategory = news.filter(item => item.isPinnedNews && item.category === formData.category).length
@@ -1057,27 +1083,27 @@ export default function NewsPage() {
           <div className="border border-gray-200 rounded-lg p-4">
             <h4 className="text-base font-semibold text-gray-900 mb-4">Гарчиг (Title)</h4>
             <div className="space-y-4">
-              <Input 
+              <RichTextEditor 
                 label="Гарчиг (Монгол)" 
                 value={formData.title_mn} 
-                onChange={(e) => { 
-                  setFormData({ ...formData, title_mn: e.target.value })
+                onChange={(html) => { 
+                  setFormData({ ...formData, title_mn: html })
                   if (formErrors.title_mn) setFormErrors({ ...formErrors, title_mn: '' }) 
                 }} 
                 placeholder="Мэдээний гарчиг" 
                 error={formErrors.title_mn} 
-                required 
+                minHeight="60px"
               />
-              <Input 
+              <RichTextEditor 
                 label="Гарчиг (English)" 
                 value={formData.title_en} 
-                onChange={(e) => { 
-                  setFormData({ ...formData, title_en: e.target.value })
+                onChange={(html) => { 
+                  setFormData({ ...formData, title_en: html })
                   if (formErrors.title_en) setFormErrors({ ...formErrors, title_en: '' }) 
                 }} 
                 placeholder="News title" 
                 error={formErrors.title_en} 
-                required 
+                minHeight="60px"
               />
             </div>
           </div>
@@ -1086,26 +1112,26 @@ export default function NewsPage() {
           <div className="border border-gray-200 rounded-lg p-4">
             <h4 className="text-base font-semibold text-gray-900 mb-4">Товч тайлбар (Summary)</h4>
             <div className="space-y-4">
-              <Textarea 
+              <RichTextEditor 
                 label="Товч тайлбар (Монгол)" 
                 value={formData.excerpt_mn} 
-                onChange={(e) => { 
-                  setFormData({ ...formData, excerpt_mn: e.target.value })
+                onChange={(html) => { 
+                  setFormData({ ...formData, excerpt_mn: html })
                   if (formErrors.excerpt_mn) setFormErrors({ ...formErrors, excerpt_mn: '' }) 
                 }} 
                 error={formErrors.excerpt_mn} 
-                rows={2} 
+                minHeight="80px"
                 placeholder="Мэдээний товч тайлбар..." 
               />
-              <Textarea 
+              <RichTextEditor 
                 label="Товч тайлбар (English)" 
                 value={formData.excerpt_en} 
-                onChange={(e) => { 
-                  setFormData({ ...formData, excerpt_en: e.target.value })
+                onChange={(html) => { 
+                  setFormData({ ...formData, excerpt_en: html })
                   if (formErrors.excerpt_en) setFormErrors({ ...formErrors, excerpt_en: '' }) 
                 }} 
                 error={formErrors.excerpt_en} 
-                rows={2} 
+                minHeight="80px"
                 placeholder="Brief description..." 
               />
             </div>
@@ -1115,26 +1141,26 @@ export default function NewsPage() {
           <div className="border border-gray-200 rounded-lg p-4">
             <h4 className="text-base font-semibold text-gray-900 mb-4">Агуулга (Content)</h4>
             <div className="space-y-4">
-              <Textarea 
+              <RichTextEditor 
                 label="Агуулга (Монгол)" 
                 value={formData.content_mn} 
-                onChange={(e) => { 
-                  setFormData({ ...formData, content_mn: e.target.value })
+                onChange={(html) => { 
+                  setFormData({ ...formData, content_mn: html })
                   if (formErrors.content_mn) setFormErrors({ ...formErrors, content_mn: '' }) 
                 }} 
                 error={formErrors.content_mn} 
-                rows={8} 
+                minHeight="200px" 
                 placeholder="Мэдээний дэлгэрэнгүй агуулга..." 
               />
-              <Textarea 
+              <RichTextEditor 
                 label="Агуулга (English)" 
                 value={formData.content_en} 
-                onChange={(e) => { 
-                  setFormData({ ...formData, content_en: e.target.value })
+                onChange={(html) => { 
+                  setFormData({ ...formData, content_en: html })
                   if (formErrors.content_en) setFormErrors({ ...formErrors, content_en: '' }) 
                 }} 
                 error={formErrors.content_en} 
-                rows={8} 
+                minHeight="200px" 
                 placeholder="Detailed content..." 
               />
             </div>
@@ -1191,12 +1217,12 @@ export default function NewsPage() {
 
           {/* Video */}
           <div className="border border-gray-200 rounded-lg p-4">
-            <h5 className="text-base font-semibold text-gray-900 mb-4">Видео (YouTube)</h5>
+            <h5 className="text-base font-semibold text-gray-900 mb-4">Видео (YouTube, Facebook, TikTok, Instagram...)</h5>
             <Input 
-              label="YouTube URL" 
+              label="Видео URL" 
               value={videoUrl} 
               onChange={(e) => setVideoUrl(e.target.value)} 
-              placeholder="https://www.youtube.com/watch?v=..." 
+              placeholder="https://www.youtube.com/watch?v=... эсвэл бусад видео линк" 
               error={formErrors.video} 
             />
             {videoUrl && toEmbedUrl(videoUrl) && (
