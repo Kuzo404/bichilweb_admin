@@ -93,8 +93,8 @@ const getTrans = (translations: Translation[], langId: number) =>
   translations.find(t => t.language === langId)
 
 const memberToForm = (m: MemberAPI): MemberFormData => {
-  const mn = getTrans(m.translations, 2)
-  const en = getTrans(m.translations, 1)
+  const mn = getTrans(m.translations, 1)
+  const en = getTrans(m.translations, 2)
   return {
     name_mn: mn?.name || '', name_en: en?.name || '',
     role_mn: mn?.role || '', role_en: en?.role || '',
@@ -624,7 +624,7 @@ export default function GovernanceTab() {
 
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-2">Зураг</label>
-              <ImageUpload onChange={(url, file) => setFormData({ ...formData, image: url, imageFile: file || null })} value={formData.image} />
+              <ImageUpload onChange={(url) => setFormData({ ...formData, image: url, imageFile: null })} value={formData.image} />
             </div>
           </div>
 

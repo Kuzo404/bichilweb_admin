@@ -22,6 +22,7 @@ interface APITranslation {
   fontsize?: string
   fontweight?: string
   fontfamily?: string
+  textalign?: string
 }
 
 interface APIBlock {
@@ -84,6 +85,7 @@ interface DynamicBlock {
   size: number
   weight: string
   family: string
+  textalign: string
   visible: boolean
 }
 
@@ -96,6 +98,7 @@ interface DynamicSection {
   title_size: number
   title_weight: string
   title_family: string
+  title_textalign: string
   visible: boolean
   blocks: DynamicBlock[]
 }
@@ -121,6 +124,7 @@ const newBlock = (): DynamicBlock => ({
   size: 14,
   weight: '400',
   family: 'inherit',
+  textalign: 'left',
   visible: true,
 })
 
@@ -133,6 +137,7 @@ const newSection = (label?: string): DynamicSection => ({
   title_size: 18,
   title_weight: '700',
   title_family: 'inherit',
+  title_textalign: 'left',
   visible: true,
   blocks: [newBlock()],
 })
@@ -154,13 +159,20 @@ const initialData: IntroData = {
 /* ═══════════════════════════════════════════════════════════════════
    Тусдаа дэд компонент: Фонт тохиргоо (FontControls)
    ═══════════════════════════════════════════════════════════════════ */
+const ALIGN_OPTIONS = [
+  { value: 'left', label: 'Зүүн', icon: '≡' },
+  { value: 'center', label: 'Голлуулах', icon: '≡' },
+  { value: 'right', label: 'Баруун', icon: '≡' },
+  { value: 'justify', label: 'Тэгшлэх', icon: '≡' },
+] as const
+
 function FontControls({
-  color, size, weight, family,
+  color, size, weight, family, textalign,
   onChange,
   bgClass = 'bg-teal-100/40 border-teal-200',
   maxSize = 48,
 }: {
-  color: string; size: number; weight: string; family: string
+  color: string; size: number; weight: string; family: string; textalign?: string
   onChange: (field: string, value: string | number) => void
   bgClass?: string
   maxSize?: number
@@ -197,11 +209,30 @@ function FontControls({
           <option value="'Georgia', serif">Georgia</option>
         </select>
       </div>
+      {textalign !== undefined && (
+        <div className="md:col-span-4">
+          <label className="block text-xs font-medium text-gray-700 mb-1">Текст тэгшлэл</label>
+          <div className="flex gap-1">
+            {ALIGN_OPTIONS.map(opt => (
+              <button key={opt.value} type="button"
+                onClick={() => onChange('textalign', opt.value)}
+                className={clsx(
+                  'flex-1 px-2 py-1.5 text-xs font-medium rounded-md border transition-colors',
+                  textalign === opt.value
+                    ? 'bg-teal-600 text-white border-teal-600'
+                    : 'bg-white text-gray-700 border-gray-200 hover:border-teal-300 hover:bg-teal-50'
+                )}>
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
       <div className="md:col-span-4">
         <div className="text-xs text-gray-500 flex items-center gap-2 mt-1">
           <span>Урьдчилсан:</span>
           <span className="px-2 py-1 rounded border border-gray-200 bg-white"
-            style={{ color, fontSize: `${size}px`, fontWeight: weight, fontFamily: family }}>
+            style={{ color, fontSize: `${size}px`, fontWeight: weight, fontFamily: family, textAlign: (textalign as any) || 'left' }}>
             Аа Bb
           </span>
         </div>
@@ -245,6 +276,7 @@ function transformAPIToIntroData(apiData: APIAboutPage): IntroData {
       title_size: parseInt(mnTitle?.fontsize || '18'),
       title_weight: mnTitle?.fontweight || '700',
       title_family: mnTitle?.fontfamily || 'inherit',
+      title_textalign: mnTitle?.textalign || 'left',
       visible: section.visible,
       blocks: [],
     }
@@ -261,6 +293,7 @@ function transformAPIToIntroData(apiData: APIAboutPage): IntroData {
         size: parseInt(mnBlock?.fontsize || '14'),
         weight: mnBlock?.fontweight || '400',
         family: mnBlock?.fontfamily || 'inherit',
+        textalign: mnBlock?.textalign || 'left',
         visible: block.visible,
       })
     }
@@ -297,6 +330,7 @@ function transformIntroDataToAPI(data: IntroData) {
           fontsize: section.title_size.toString(),
           fontweight: section.title_weight,
           fontfamily: section.title_family,
+          textalign: section.title_textalign,
         },
         {
           language: 2,
@@ -305,6 +339,7 @@ function transformIntroDataToAPI(data: IntroData) {
           fontsize: section.title_size.toString(),
           fontweight: section.title_weight,
           fontfamily: section.title_family,
+          textalign: section.title_textalign,
         },
       ],
       blocks: section.blocks.map((block, bIdx) => ({
@@ -318,6 +353,7 @@ function transformIntroDataToAPI(data: IntroData) {
             fontsize: block.size.toString(),
             fontweight: block.weight,
             fontfamily: block.family,
+            textalign: block.textalign,
           },
           {
             language: 2,
@@ -326,6 +362,7 @@ function transformIntroDataToAPI(data: IntroData) {
             fontsize: block.size.toString(),
             fontweight: block.weight,
             fontfamily: block.family,
+            textalign: block.textalign,
           },
         ],
       })),
@@ -664,12 +701,13 @@ export default function IntroTab() {
                         fontSize: `${section.title_size}px`,
                         fontWeight: section.title_weight,
                         fontFamily: section.title_family,
+                        textAlign: section.title_textalign as any,
                       }}>
                         {previewLang === 'mn' ? section.title_mn : section.title_en}
                       </h2>
                     )}
                     {/* Параграфууд */}
-                    <div className="space-y-3 leading-relaxed text-justify">
+                    <div className="space-y-3 leading-relaxed">
                       {section.blocks.map((block, bIdx) =>
                         block.visible && (block.content_mn || block.content_en) ? (
                           <p key={bIdx} style={{
@@ -677,6 +715,7 @@ export default function IntroTab() {
                             fontSize: `${block.size}px`,
                             fontWeight: block.weight,
                             fontFamily: block.family,
+                            textAlign: block.textalign as any,
                           }}>
                             {previewLang === 'mn' ? block.content_mn : block.content_en}
                           </p>
@@ -935,6 +974,7 @@ export default function IntroTab() {
                       <FontControls
                         color={section.title_color} size={section.title_size}
                         weight={section.title_weight} family={section.title_family}
+                        textalign={section.title_textalign}
                         onChange={(field, value) => updateSectionFont(sIdx, field, value)}
                         bgClass="bg-teal-100/40 border-teal-200"
                       />
@@ -997,6 +1037,7 @@ export default function IntroTab() {
                         <FontControls
                           color={block.color} size={block.size}
                           weight={block.weight} family={block.family}
+                          textalign={block.textalign}
                           onChange={(field, value) => updateBlock(sIdx, bIdx, field, value)}
                           bgClass="bg-blue-100/40 border-blue-200"
                           maxSize={24}

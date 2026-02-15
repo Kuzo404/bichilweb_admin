@@ -615,10 +615,23 @@ export default function ValuesTab() {
       >
         {editingValue && (
           <div className="space-y-5 pb-4">
-            {/* Image Upload - Only for Vision/Mission */}
-            {(editingValue.id === 'vision' || editingValue.id === 'mission') && (
-              <div className="border border-purple-200 rounded-lg p-4 bg-purple-50/20">
-                <h4 className="text-base font-semibold text-gray-900 mb-3">Зураг</h4>
+            {/* Image Upload - All values */}
+            <div className="border border-purple-200 rounded-lg p-4 bg-purple-50/20">
+                <div className="flex items-center justify-between mb-3">
+                  <h4 className="text-base font-semibold text-gray-900">Зураг</h4>
+                  {editingValue.image_url && (
+                    <button
+                      type="button"
+                      onClick={() => setValues(values.map(v => v.id === editingValue.id ? {...v, image_url: ''} : v))}
+                      className="px-3 py-1.5 text-xs font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-md transition-colors flex items-center gap-1"
+                    >
+                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                      Зураг устгах
+                    </button>
+                  )}
+                </div>
                 <div className="space-y-3">
                   <ImageUpload 
                     value={editingValue.image_url || ''}
@@ -642,7 +655,6 @@ export default function ValuesTab() {
                   </div>
                 </div>
               </div>
-            )}
 
             {/* Title/Label (for Vision/Mission) OR regular Title (for core values) */}
             <div className="space-y-4">
