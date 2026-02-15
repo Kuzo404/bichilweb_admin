@@ -93,6 +93,8 @@ const iconDisplay: Record<string, string> = {
 const layoutOptions = [
   { value: 'standard', label: 'Стандарт', desc: 'Текст зүүн, Зураг баруун' },
   { value: 'reverse', label: 'Эсрэг', desc: 'Зураг зүүн, Текст баруун' },
+  { value: 'text-top', label: 'Текст дээр', desc: 'Текст дээр, Зураг доор' },
+  { value: 'image-top', label: 'Зураг дээр', desc: 'Зураг дээр, Текст доор' },
 ]
 
 const featuresLayoutOptions = [
@@ -122,6 +124,13 @@ export default function AppDownloadPage() {
 
   useEffect(() => { fetchData() }, [])
 
+  // Cloudinary URL мөн эсэхийг шалгах helper
+  const getImageSrc = (url: string | null | undefined): string | null => {
+    if (!url) return null
+    if (url.startsWith('http://') || url.startsWith('https://')) return url
+    return `${process.env.NEXT_PUBLIC_MEDIA_URL || 'http://127.0.0.1:8000'}${url}`
+  }
+
   const normalizeData = (item: any): AppDownloadData => {
     item.layout = item.layout || 'standard'
     item.features_layout = item.features_layout || 'vertical'
@@ -142,7 +151,7 @@ export default function AppDownloadPage() {
         setOriginalData(JSON.parse(JSON.stringify(item)))
         setIsNew(false)
         if (item.image_url) {
-          setImagePreview(`${process.env.NEXT_PUBLIC_MEDIA_URL || 'http://127.0.0.1:8000'}${item.image_url}`)
+          setImagePreview(getImageSrc(item.image_url))
         }
       } else {
         setData({ ...defaultData })
@@ -202,7 +211,7 @@ export default function AppDownloadPage() {
       setIsNew(false)
       setImageFile(null)
       if (item.image_url) {
-        setImagePreview(`${process.env.NEXT_PUBLIC_MEDIA_URL || 'http://127.0.0.1:8000'}${item.image_url}`)
+        setImagePreview(getImageSrc(item.image_url))
       }
       setSaveMsg({ type: 'success', text: 'Амжилттай хадгалагдлаа!' })
       setTimeout(() => setSaveMsg(null), 3000)
@@ -219,7 +228,7 @@ export default function AppDownloadPage() {
       setData(JSON.parse(JSON.stringify(originalData)))
       setImageFile(null)
       if (originalData.image_url) {
-        setImagePreview(`${process.env.NEXT_PUBLIC_MEDIA_URL || 'http://127.0.0.1:8000'}${originalData.image_url}`)
+        setImagePreview(getImageSrc(originalData.image_url))
       } else {
         setImagePreview(null)
       }
@@ -295,6 +304,7 @@ export default function AppDownloadPage() {
   if (!data) return null
 
   const isReverse = data.layout === 'reverse'
+  const isVertical = data.layout === 'text-top' || data.layout === 'image-top'
 
   return (
     <AdminLayout title="App Download">
@@ -341,7 +351,7 @@ export default function AppDownloadPage() {
               <h3 className="font-semibold text-gray-900 flex items-center gap-2">
                 <ArrowsRightLeftIcon className="w-5 h-5" /> Текст, зурагны байршил
               </h3>
-              <p className="text-xs text-gray-500">Desktop: зүүн/баруун, Гар утас: дээр/доор</p>
+              <p className="text-xs text-gray-500">Desktop: зүүн/баруун эсвэл дээр/доор</p>
               <div className="grid grid-cols-2 gap-3">
                 {layoutOptions.map(opt => (
                   <button
@@ -361,13 +371,27 @@ export default function AppDownloadPage() {
                             <DevicePhoneMobileIcon className="w-4 h-4 text-gray-400" />
                           </div>
                         </>
-                      ) : (
+                      ) : opt.value === 'reverse' ? (
                         <>
                           <div className="w-8 h-10 bg-gray-200 rounded flex items-center justify-center">
                             <DevicePhoneMobileIcon className="w-4 h-4 text-gray-400" />
                           </div>
                           <div className="flex-1 h-10 bg-blue-200 rounded flex items-center justify-center text-[10px] text-blue-700 font-medium">Текст</div>
                         </>
+                      ) : opt.value === 'text-top' ? (
+                        <div className="flex flex-col gap-1 w-full">
+                          <div className="h-6 bg-blue-200 rounded flex items-center justify-center text-[10px] text-blue-700 font-medium">Текст</div>
+                          <div className="h-6 bg-gray-200 rounded flex items-center justify-center">
+                            <DevicePhoneMobileIcon className="w-3 h-3 text-gray-400" />
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex flex-col gap-1 w-full">
+                          <div className="h-6 bg-gray-200 rounded flex items-center justify-center">
+                            <DevicePhoneMobileIcon className="w-3 h-3 text-gray-400" />
+                          </div>
+                          <div className="h-6 bg-blue-200 rounded flex items-center justify-center text-[10px] text-blue-700 font-medium">Текст</div>
+                        </div>
                       )}
                     </div>
                     <div className="font-medium text-sm text-gray-900">{opt.label}</div>
@@ -767,9 +791,12 @@ export default function AppDownloadPage() {
               {/* Preview Container */}
               <div className="rounded-xl overflow-hidden border border-gray-100" style={{ backgroundColor: data.bgcolor }}>
                 <div className="p-6">
-                  <div className="grid grid-cols-2 gap-4 items-center">
+                  <div className={`${isVertical ? 'flex flex-col gap-6' : 'grid grid-cols-2 gap-4'} items-center`}>
                     {/* Text side */}
-                    <div className={`space-y-4 ${isReverse ? 'order-2' : 'order-1'}`}>
+                    <div className={`space-y-4 ${isVertical
+                      ? (data.layout === 'text-top' ? 'order-1' : 'order-2')
+                      : (isReverse ? 'order-2' : 'order-1')
+                    } ${isVertical ? 'text-center' : ''}`}>
                       {/* Scattered titles */}
                       <div className="relative min-h-[180px]">
                         {data.titles.map((t, i) => (
@@ -836,7 +863,10 @@ export default function AppDownloadPage() {
                     </div>
 
                     {/* Image side */}
-                    <div className={`flex justify-center ${isReverse ? 'order-1' : 'order-2'}`}>
+                    <div className={`flex justify-center ${isVertical
+                      ? (data.layout === 'image-top' ? 'order-1' : 'order-2')
+                      : (isReverse ? 'order-1' : 'order-2')
+                    }`}>
                       {imagePreview ? (
                         <img src={imagePreview} alt="App" className="max-h-[200px] object-contain drop-shadow-lg" />
                       ) : (
