@@ -878,9 +878,9 @@ export default function FooterPage() {
 
               {/* Bottom bar */}
               <div className="border-t px-8 py-4" style={{ borderColor: 'rgba(255,255,255,0.1)' }}>
-                <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-                  <p className={data.textSize} style={{ color: data.textColor }}>
-                    © {new Date().getFullYear()} {data.logoText}. {t(data.copyright.mn, data.copyright.en)}
+                <div className="flex justify-center items-center">
+                  <p className={`${data.textSize} text-center`} style={{ color: data.textColor }}>
+                    {t(data.copyright.mn, data.copyright.en)}
                   </p>
                 </div>
               </div>
