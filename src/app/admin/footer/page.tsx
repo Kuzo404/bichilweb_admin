@@ -53,6 +53,7 @@ interface FooterDataBackend {
   fontsize: string
   copyrighten: string
   copyrightmn: string
+  logo_size: string
   socials: SocialLink[]
   urls: QuickLink[]
 }
@@ -75,6 +76,7 @@ interface FooterDataFrontend {
   titleSize: string
   textSize: string
   iconColor: string
+  logoSize: string
   backend_id?: number
 }
 
@@ -149,7 +151,8 @@ const backendToFrontend = (backend: FooterDataBackend): FooterDataFrontend => {
     accentColor: backend.featurecolor || '#14b8a6',
     titleSize: pixelToTailwind(backend.titlesize || '16'),
     textSize: pixelToTailwind(backend.fontsize || '14'),
-    iconColor: backend.socialiconcolor || '#14b8a6'
+    iconColor: backend.socialiconcolor || '#14b8a6',
+    logoSize: backend.logo_size || '56'
   }
 }
 
@@ -173,6 +176,7 @@ const frontendToFormData = (frontend: FooterDataFrontend): FormData => {
   
   formData.append('copyrightmn', frontend.copyright.mn || '')
   formData.append('copyrighten', frontend.copyright.en || '')
+  formData.append('logo_size', frontend.logoSize || '56')
 
   if (frontend.logoImage.type === 'svg' && frontend.logoImage.value.trim() !== '') {
     formData.append('svg', frontend.logoImage.value)
@@ -629,7 +633,8 @@ export default function FooterPage() {
     accentColor: '#14b8a6',
     titleSize: 'text-base',
     textSize: 'text-sm',
-    iconColor: '#14b8a6'
+    iconColor: '#14b8a6',
+    logoSize: '56'
   })
 
   const [saveSuccess, setSaveSuccess] = useState(false)
@@ -780,17 +785,19 @@ export default function FooterPage() {
                   <div>
                     <div className="flex items-center gap-3 mb-4">
                       {data.logoImage.value ? (
-                        <div className="w-10 h-10 rounded-full flex items-center justify-center overflow-hidden shrink-0 bg-white/10">
+                        <div className="flex items-center justify-center overflow-hidden shrink-0">
                           {data.logoImage.type === 'svg' && data.logoImage.value.startsWith('<svg') ? (
                             <div
                               dangerouslySetInnerHTML={{ __html: data.logoImage.value }}
-                              className="w-10 h-10 flex items-center justify-center [&_svg]:w-full [&_svg]:h-full"
+                              style={{ height: `${Math.min(parseInt(data.logoSize) * 0.5, 40)}px` }}
+                              className="[&_svg]:h-full [&_svg]:w-auto"
                             />
                           ) : (
                             <img
                               src={data.logoImage.value}
                               alt="Logo"
-                              className="w-10 h-10 object-cover"
+                              style={{ height: `${Math.min(parseInt(data.logoSize) * 0.5, 40)}px` }}
+                              className="object-contain"
                             />
                           )}
                         </div>
@@ -913,11 +920,11 @@ export default function FooterPage() {
               <ImageUpload
                 label="Лого зураг"
                 value={data.logoImage.value}
-                onChange={(url) => {
+                onChange={(url, file) => {
                   setData({
                     ...data,
                     logoImage: { type: 'upload', value: url },
-                    logoFile: undefined, // Clear file input
+                    logoFile: file,
                   })
                 }}
               />
@@ -934,6 +941,43 @@ export default function FooterPage() {
                   className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent text-sm font-mono resize-none"
                   placeholder={'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">\n  <circle cx="50" cy="50" r="40" fill="blue"/>\n</svg>'}
                 />
+              </div>
+
+              {/* Logo Size */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  Лого хэмжээ: <span className="text-teal-600 font-semibold">{data.logoSize}px</span>
+                </label>
+                <div className="flex items-center gap-3">
+                  <span className="text-xs text-slate-400">24</span>
+                  <input
+                    type="range"
+                    min="24"
+                    max="120"
+                    step="4"
+                    value={data.logoSize}
+                    onChange={(e) => setData({ ...data, logoSize: e.target.value })}
+                    className="flex-1 h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-teal-500"
+                  />
+                  <span className="text-xs text-slate-400">120</span>
+                </div>
+                <div className="mt-2 flex items-center justify-center p-3 bg-slate-50 rounded-lg border border-slate-200">
+                  <div style={{ height: `${data.logoSize}px` }} className="flex items-center">
+                    {data.logoImage.value ? (
+                      data.logoImage.type === 'svg' && data.logoImage.value.startsWith('<svg') ? (
+                        <div
+                          dangerouslySetInnerHTML={{ __html: data.logoImage.value }}
+                          style={{ height: `${data.logoSize}px` }}
+                          className="[&_svg]:h-full [&_svg]:w-auto"
+                        />
+                      ) : (
+                        <img src={data.logoImage.value} alt="Logo preview" style={{ height: `${data.logoSize}px` }} className="object-contain" />
+                      )
+                    ) : (
+                      <span className="text-slate-400 text-sm">Лого оруулна уу</span>
+                    )}
+                  </div>
+                </div>
               </div>
 
               <div>
