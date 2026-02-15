@@ -284,6 +284,10 @@ export default function HeaderPage() {
         options.push({ label: '─── Салбарууд ───', value: '', disabled: true })
         options.push({ label: '  Салбарууд', value: '/branches' })
 
+        // ── Мэдээ (News) ──
+        options.push({ label: '─── Мэдээ ───', value: '', disabled: true })
+        options.push({ label: '  Мэдээ', value: '/news' })
+
         // Гадаад линк (өөрөө бичих) сонголт
         options.push({ label: '─── Бусад ───', value: '', disabled: true })
         options.push({ label: 'Гадаад линк (өөрөө бичих)', value: 'custom' })

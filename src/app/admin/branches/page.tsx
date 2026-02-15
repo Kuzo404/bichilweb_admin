@@ -11,6 +11,7 @@ import { axiosInstance } from '@/lib/axios'
 interface BranchCategory {
   id: number
   name: string
+  name_en: string
   sort_order: number
   active: boolean
 }
@@ -18,6 +19,7 @@ interface BranchCategory {
 interface BranchAPI {
   id: number
   name: string
+  name_en: string
   location: string
   image?: string
   image_url?: string | null
@@ -31,11 +33,13 @@ interface BranchAPI {
   phones: { id?: number; phone: string }[]
   category_id?: number | null
   category_name?: string | null
+  category_name_en?: string | null
 }
 
 interface Branch {
   id: number
   name: string
+  name_en: string
   location: string
   image?: string | null
   image_url: string | null
@@ -49,10 +53,12 @@ interface Branch {
   phones: { id?: number; phone: string }[]
   category_id: number | null
   category_name: string | null
+  category_name_en: string | null
 }
 
 interface BranchFormData {
   name: string
+  name_en: string
   location: string
   open: string
   time: string
@@ -114,6 +120,7 @@ const defaultPageSettings: BranchPageSettings = {
 
 const initialFormData: BranchFormData = {
   name: '',
+  name_en: '',
   location: '',
   open: 'Даваа-Баасан',
   time: '09:00-18:00',
@@ -129,12 +136,14 @@ const initialFormData: BranchFormData = {
 
 const transformAPIToBranch = (apiData: BranchAPI): Branch => ({
   ...apiData,
+  name_en: apiData.name_en || '',
   image: apiData.image_url || apiData.image || null,
   image_url: apiData.image_url ?? null,
   latitude: apiData.latitude ? parseFloat(apiData.latitude) : null,
   longitude: apiData.longitude ? parseFloat(apiData.longitude) : null,
   category_id: apiData.category_id ?? null,
   category_name: apiData.category_name ?? null,
+  category_name_en: apiData.category_name_en ?? null,
 })
 
 export default function BranchesPage() {
@@ -148,8 +157,10 @@ export default function BranchesPage() {
   const [categories, setCategories] = useState<BranchCategory[]>([])
   const [showCategoryManager, setShowCategoryManager] = useState(false)
   const [newCategoryName, setNewCategoryName] = useState('')
+  const [newCategoryNameEn, setNewCategoryNameEn] = useState('')
   const [editingCategory, setEditingCategory] = useState<BranchCategory | null>(null)
   const [editCategoryName, setEditCategoryName] = useState('')
+  const [editCategoryNameEn, setEditCategoryNameEn] = useState('')
   const [showSettingsModal, setShowSettingsModal] = useState(false)
   const [pageSettings, setPageSettings] = useState<BranchPageSettings>(defaultPageSettings)
   const [savingSettings, setSavingSettings] = useState(false)
@@ -199,10 +210,12 @@ export default function BranchesPage() {
     try {
       await axiosInstance.post('/branch-category/', { 
         name: newCategoryName.trim(), 
+        name_en: newCategoryNameEn.trim(),
         sort_order: categories.length,
         active: true 
       })
       setNewCategoryName('')
+      setNewCategoryNameEn('')
       await fetchCategories()
     } catch (error) {
       console.error('Ангилал нэмэхэд алдаа:', error)
@@ -215,10 +228,12 @@ export default function BranchesPage() {
     try {
       await axiosInstance.put(`/branch-category/${cat.id}/`, {
         ...cat,
-        name: editCategoryName.trim()
+        name: editCategoryName.trim(),
+        name_en: editCategoryNameEn.trim()
       })
       setEditingCategory(null)
       setEditCategoryName('')
+      setEditCategoryNameEn('')
       await fetchCategories()
       await fetchBranches() // refresh branch category names
     } catch (error) {
@@ -278,6 +293,7 @@ export default function BranchesPage() {
       const formDataToSend = new FormData()
       
       formDataToSend.append('name', formData.name)
+      formDataToSend.append('name_en', formData.name_en || '')
       formDataToSend.append('location', formData.location)
       formDataToSend.append('area', formData.area || '')
       formDataToSend.append('city', formData.city || '')
@@ -397,6 +413,7 @@ export default function BranchesPage() {
     setEditingBranch(branch)
     setFormData({
       name: branch.name,
+      name_en: branch.name_en || '',
       location: branch.location,
       open: branch.open || 'Даваа-Баасан',
       time: branch.time || '09:00-18:00',
@@ -671,6 +688,20 @@ export default function BranchesPage() {
                 className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 outline-none transition-all"
                 placeholder="Төв салбар"
                 required 
+                disabled={submitting}
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                Англи нэр
+              </label>
+              <input 
+                type="text" 
+                value={formData.name_en} 
+                onChange={(e) => setFormData(prev => ({ ...prev, name_en: e.target.value }))} 
+                className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 outline-none transition-all"
+                placeholder="Main Branch"
                 disabled={submitting}
               />
             </div>
@@ -956,30 +987,42 @@ export default function BranchesPage() {
           setShowCategoryManager(false)
           setEditingCategory(null)
           setEditCategoryName('')
+          setEditCategoryNameEn('')
           setNewCategoryName('')
+          setNewCategoryNameEn('')
         }}
         title="Салбарын ангилал удирдах"
         size="md"
       >
         <div className="space-y-4">
           {/* Add new category */}
-          <div className="flex gap-2">
+          <div className="space-y-2">
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={newCategoryName}
+                onChange={(e) => setNewCategoryName(e.target.value)}
+                placeholder="Шинэ ангилалын нэр..."
+                className="flex-1 rounded-lg border border-gray-300 px-3 py-2.5 text-sm focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 outline-none transition-all"
+                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddCategory() } }}
+              />
+              <button
+                type="button"
+                onClick={handleAddCategory}
+                className="px-4 py-2.5 bg-teal-600 text-white rounded-lg text-sm font-medium hover:bg-teal-700 transition-colors flex items-center gap-1.5"
+              >
+                <PlusIcon className="h-4 w-4" />
+                Нэмэх
+              </button>
+            </div>
             <input
               type="text"
-              value={newCategoryName}
-              onChange={(e) => setNewCategoryName(e.target.value)}
-              placeholder="Шинэ ангилалын нэр..."
-              className="flex-1 rounded-lg border border-gray-300 px-3 py-2.5 text-sm focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 outline-none transition-all"
+              value={newCategoryNameEn}
+              onChange={(e) => setNewCategoryNameEn(e.target.value)}
+              placeholder="English name..."
+              className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 outline-none transition-all"
               onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddCategory() } }}
             />
-            <button
-              type="button"
-              onClick={handleAddCategory}
-              className="px-4 py-2.5 bg-teal-600 text-white rounded-lg text-sm font-medium hover:bg-teal-700 transition-colors flex items-center gap-1.5"
-            >
-              <PlusIcon className="h-4 w-4" />
-              Нэмэх
-            </button>
           </div>
 
           {/* Categories list */}
@@ -998,30 +1041,44 @@ export default function BranchesPage() {
                   }`}
                 >
                   {editingCategory?.id === cat.id ? (
-                    <div className="flex items-center gap-2 flex-1">
+                    <div className="flex-1 space-y-2">
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="text"
+                          value={editCategoryName}
+                          onChange={(e) => setEditCategoryName(e.target.value)}
+                          className="flex-1 rounded-md border border-gray-300 px-2 py-1.5 text-sm focus:border-teal-500 outline-none"
+                          autoFocus
+                          placeholder="Монгол нэр"
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') { e.preventDefault(); handleUpdateCategory(cat) }
+                            if (e.key === 'Escape') { setEditingCategory(null); setEditCategoryName(''); setEditCategoryNameEn('') }
+                          }}
+                        />
+                        <button
+                          onClick={() => handleUpdateCategory(cat)}
+                          className="px-3 py-1.5 bg-teal-600 text-white rounded-md text-xs font-medium hover:bg-teal-700"
+                        >
+                          Хадгалах
+                        </button>
+                        <button
+                          onClick={() => { setEditingCategory(null); setEditCategoryName(''); setEditCategoryNameEn('') }}
+                          className="px-3 py-1.5 text-gray-600 hover:bg-gray-100 rounded-md text-xs"
+                        >
+                          Цуцлах
+                        </button>
+                      </div>
                       <input
                         type="text"
-                        value={editCategoryName}
-                        onChange={(e) => setEditCategoryName(e.target.value)}
-                        className="flex-1 rounded-md border border-gray-300 px-2 py-1.5 text-sm focus:border-teal-500 outline-none"
-                        autoFocus
+                        value={editCategoryNameEn}
+                        onChange={(e) => setEditCategoryNameEn(e.target.value)}
+                        className="w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm focus:border-teal-500 outline-none"
+                        placeholder="English name"
                         onKeyDown={(e) => {
                           if (e.key === 'Enter') { e.preventDefault(); handleUpdateCategory(cat) }
-                          if (e.key === 'Escape') { setEditingCategory(null); setEditCategoryName('') }
+                          if (e.key === 'Escape') { setEditingCategory(null); setEditCategoryName(''); setEditCategoryNameEn('') }
                         }}
                       />
-                      <button
-                        onClick={() => handleUpdateCategory(cat)}
-                        className="px-3 py-1.5 bg-teal-600 text-white rounded-md text-xs font-medium hover:bg-teal-700"
-                      >
-                        Хадгалах
-                      </button>
-                      <button
-                        onClick={() => { setEditingCategory(null); setEditCategoryName('') }}
-                        className="px-3 py-1.5 text-gray-600 hover:bg-gray-100 rounded-md text-xs"
-                      >
-                        Цуцлах
-                      </button>
                     </div>
                   ) : (
                     <>
@@ -1040,6 +1097,7 @@ export default function BranchesPage() {
                         </button>
                         <span className={`text-sm font-medium ${cat.active ? 'text-gray-900' : 'text-gray-500'}`}>
                           {cat.name}
+                          {cat.name_en && <span className="text-xs text-gray-400 ml-1">({cat.name_en})</span>}
                         </span>
                         <span className="text-xs text-gray-400">
                           ({branches.filter(b => b.category_id === cat.id).length} салбар)
@@ -1047,7 +1105,7 @@ export default function BranchesPage() {
                       </div>
                       <div className="flex items-center gap-1">
                         <button
-                          onClick={() => { setEditingCategory(cat); setEditCategoryName(cat.name) }}
+                          onClick={() => { setEditingCategory(cat); setEditCategoryName(cat.name); setEditCategoryNameEn(cat.name_en || '') }}
                           className="p-1.5 text-gray-400 hover:text-teal-600 hover:bg-teal-50 rounded-md transition-colors"
                           title="Засах"
                         >
