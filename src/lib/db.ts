@@ -10,6 +10,9 @@ export function getPool(): Pool {
     if (!pool) {
         pool = new Pool({
             connectionString: process.env.DATABASE_URL,
+            ssl: process.env.DATABASE_URL.includes('render.com')
+                ? { rejectUnauthorized: false }
+                : undefined,
         });
     }
     
