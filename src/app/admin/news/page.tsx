@@ -38,6 +38,7 @@ interface ApiNewsItem {
   image_url?: string
   video: string
   video_orientation: string
+  facebook_url?: string
   feature: boolean
   render: boolean
   show_on_home: boolean
@@ -101,6 +102,7 @@ interface NewsItem {
   additionalImages?: string[]
   videoUrl?: string
   videoOrientation?: string
+  facebookUrl?: string
 }
 
 interface SocialLink {
@@ -215,6 +217,7 @@ const mapApiNewsToAdmin = (item: ApiNewsItem): NewsItem => {
     additionalImages: item.images.map(img => img.image),
     videoUrl: item.video,
     videoOrientation: item.video_orientation || 'horizontal',
+    facebookUrl: item.facebook_url || '',
   }
 }
 
@@ -277,6 +280,7 @@ export default function NewsPage() {
   const [additionalImages, setAdditionalImages] = useState<string[]>([])
   const [videoUrl, setVideoUrl] = useState('')
   const [videoOrientation, setVideoOrientation] = useState<'horizontal' | 'vertical'>('horizontal')
+  const [facebookUrl, setFacebookUrl] = useState('')
   const [bannerImageFile, setBannerImageFile] = useState<File | null>(null)
   const [latestHeading, setLatestHeading] = useState('Сүүлийн мэдээнүүд')
   const [featuredHeading, setFeaturedHeading] = useState('Онцлох мэдээ')
@@ -443,6 +447,7 @@ export default function NewsPage() {
       formDataToSend.append('category', formData.category.toString())
       formDataToSend.append('video', videoUrl || '')
       formDataToSend.append('video_orientation', videoOrientation)
+      formDataToSend.append('facebook_url', facebookUrl || '')
       formDataToSend.append('feature', formData.isPinnedNews.toString())
       formDataToSend.append('render', formData.isActive.toString())
       formDataToSend.append('show_on_home', formData.isPinnedHome.toString())
@@ -668,6 +673,7 @@ export default function NewsPage() {
     setAdditionalImages(item.additionalImages || [])
     setVideoUrl(item.videoUrl || '')
     setVideoOrientation((item.videoOrientation as 'horizontal' | 'vertical') || 'horizontal')
+    setFacebookUrl(item.facebookUrl || '')
     setBannerImageFile(null)
     setModalOpen(true)
   }
@@ -700,6 +706,7 @@ export default function NewsPage() {
     setAdditionalImages([])
     setVideoUrl('')
     setVideoOrientation('horizontal')
+    setFacebookUrl('')
     setBannerImageFile(null)
   }
 
@@ -1353,6 +1360,32 @@ export default function NewsPage() {
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
                   allowFullScreen 
                 />
+              </div>
+            )}
+          </div>
+
+          {/* Facebook Post Embed */}
+          <div className="border border-gray-200 rounded-lg p-4">
+            <h5 className="text-base font-semibold text-gray-900 mb-2 flex items-center gap-2">
+              <svg className="w-5 h-5 text-blue-600" fill="currentColor" viewBox="0 0 24 24"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" /></svg>
+              Facebook пост оруулах
+            </h5>
+            <p className="text-xs text-gray-500 mb-3">
+              Facebook пост-ийн линкийг оруулбал мэдээний дотор Facebook пост embed хэлбэрээр харагдана.
+            </p>
+            <Input 
+              label="Facebook Post URL" 
+              value={facebookUrl} 
+              onChange={(e) => setFacebookUrl(e.target.value)} 
+              placeholder="https://www.facebook.com/username/posts/123456789..." 
+            />
+            {facebookUrl && (
+              <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <p className="text-sm text-blue-800 flex items-center gap-2">
+                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" /></svg>
+                  Facebook пост embed хэлбэрээр харагдана
+                </p>
+                <p className="text-xs text-blue-600 mt-1 break-all">{facebookUrl}</p>
               </div>
             )}
           </div>
