@@ -6,16 +6,24 @@ interface ImageUploadProps {
   value?: string
   onChange: (url: string, file?: File) => void
   label?: string
+  skipUpload?: boolean // If true, only create local preview (parent handles the actual upload)
 }
 
 
-export default function ImageUpload({ value, onChange, label }: ImageUploadProps) {
+export default function ImageUpload({ value, onChange, label, skipUpload = false }: ImageUploadProps) {
   const [uploading, setUploading] = useState(false)
   const [dragOver, setDragOver] = useState(false)
 
 
 
   const handleUpload = useCallback(async (file: File) => {
+    // If skipUpload, just create local preview and pass file to parent
+    if (skipUpload) {
+      const localUrl = URL.createObjectURL(file)
+      onChange(localUrl, file)
+      return
+    }
+
     setUploading(true)
     try {
       // Django backend руу зураг upload хийх

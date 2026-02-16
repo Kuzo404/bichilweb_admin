@@ -1173,6 +1173,7 @@ export default function NewsPage() {
               label="Үндсэн зураг нэмэх" 
               value={formData.bannerImage} 
               onChange={handleBannerImageChange}
+              skipUpload
             />
             {formErrors.bannerImage && (
               <p className="mt-2 text-sm text-red-600">{formErrors.bannerImage}</p>
@@ -1226,16 +1227,15 @@ export default function NewsPage() {
               error={formErrors.video} 
             />
             {videoUrl && toEmbedUrl(videoUrl) && (
-              <div className="mt-4 rounded-lg border border-gray-200 overflow-hidden">
-                <div className="relative w-full" style={{ paddingTop: '56.25%' }}>
-                  <iframe 
-                    src={toEmbedUrl(videoUrl)} 
-                    title="preview-video" 
-                    className="absolute inset-0 w-full h-full" 
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-                    allowFullScreen 
-                  />
-                </div>
+              <div className="mt-4 rounded-lg border border-gray-200 overflow-hidden bg-black flex items-center justify-center" style={{ maxHeight: '400px' }}>
+                <iframe 
+                  src={toEmbedUrl(videoUrl)} 
+                  title="preview-video" 
+                  className="w-full"
+                  style={{ aspectRatio: '16/9', maxHeight: '400px' }}
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                  allowFullScreen 
+                />
               </div>
             )}
           </div>
