@@ -283,6 +283,14 @@ export default function NewsPage() {
   const [latestHeadingEn, setLatestHeadingEn] = useState('')
   const [featuredHeadingEn, setFeaturedHeadingEn] = useState('')
   const [headingSaving, setHeadingSaving] = useState(false)
+  const [sectionLabelColor, setSectionLabelColor] = useState('#0d9488')
+  const [sectionLabelSize, setSectionLabelSize] = useState('14px')
+  const [headingColor, setHeadingColor] = useState('#111827')
+  const [headingSize, setHeadingSize] = useState('48px')
+  const [dividerColor, setDividerColor] = useState('#0d9488')
+  const [buttonColor, setButtonColor] = useState('#0d9488')
+  const [buttonTextColor, setButtonTextColor] = useState('#ffffff')
+  const [buttonSize, setButtonSize] = useState('16px')
 
   useEffect(() => {
     fetchNews()
@@ -586,6 +594,14 @@ export default function NewsPage() {
       setFeaturedHeading(response.data.featured_heading || 'Онцлох мэдээ')
       setLatestHeadingEn(response.data.latest_heading_en || '')
       setFeaturedHeadingEn(response.data.featured_heading_en || '')
+      setSectionLabelColor(response.data.section_label_color || '#0d9488')
+      setSectionLabelSize(response.data.section_label_size || '14px')
+      setHeadingColor(response.data.heading_color || '#111827')
+      setHeadingSize(response.data.heading_size || '48px')
+      setDividerColor(response.data.divider_color || '#0d9488')
+      setButtonColor(response.data.button_color || '#0d9488')
+      setButtonTextColor(response.data.button_text_color || '#ffffff')
+      setButtonSize(response.data.button_size || '16px')
     } catch (error) {
       console.error('Failed to fetch page settings:', error)
     }
@@ -599,6 +615,14 @@ export default function NewsPage() {
         featured_heading: featuredHeading,
         latest_heading_en: latestHeadingEn,
         featured_heading_en: featuredHeadingEn,
+        section_label_color: sectionLabelColor,
+        section_label_size: sectionLabelSize,
+        heading_color: headingColor,
+        heading_size: headingSize,
+        divider_color: dividerColor,
+        button_color: buttonColor,
+        button_text_color: buttonTextColor,
+        button_size: buttonSize,
       })
       setSuccessMessage('Гарчиг амжилттай хадгалагдлаа')
       setTimeout(() => setSuccessMessage(''), 3000)
@@ -897,12 +921,69 @@ export default function NewsPage() {
                 placeholder="Latest News"
               />
             </div>
+          </div>
+
+          {/* Style Settings */}
+          <div className="mt-4 pt-4 border-t border-gray-100">
+            <h4 className="text-xs font-semibold text-gray-500 mb-3 uppercase tracking-wider">Загвар тохиргоо</h4>
+            <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4">
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1">&quot;Онцолсон мэдээ&quot; текст өнгө</label>
+                <div className="flex gap-2">
+                  <input type="color" value={sectionLabelColor} onChange={(e) => setSectionLabelColor(e.target.value)} className="w-10 h-[38px] rounded border border-gray-300 cursor-pointer" />
+                  <input type="text" value={sectionLabelColor} onChange={(e) => setSectionLabelColor(e.target.value)} className="flex-1 px-2 py-1.5 rounded-lg border border-gray-300 text-xs focus:outline-none focus:ring-2 focus:ring-teal-500" />
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1">&quot;Онцолсон мэдээ&quot; текст хэмжээ</label>
+                <input type="text" value={sectionLabelSize} onChange={(e) => setSectionLabelSize(e.target.value)} className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500" placeholder="14px" />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1">&quot;Мэдээ&quot; гарчиг өнгө</label>
+                <div className="flex gap-2">
+                  <input type="color" value={headingColor} onChange={(e) => setHeadingColor(e.target.value)} className="w-10 h-[38px] rounded border border-gray-300 cursor-pointer" />
+                  <input type="text" value={headingColor} onChange={(e) => setHeadingColor(e.target.value)} className="flex-1 px-2 py-1.5 rounded-lg border border-gray-300 text-xs focus:outline-none focus:ring-2 focus:ring-teal-500" />
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1">&quot;Мэдээ&quot; гарчиг хэмжээ</label>
+                <input type="text" value={headingSize} onChange={(e) => setHeadingSize(e.target.value)} className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500" placeholder="48px" />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1">Зураас өнгө</label>
+                <div className="flex gap-2">
+                  <input type="color" value={dividerColor} onChange={(e) => setDividerColor(e.target.value)} className="w-10 h-[38px] rounded border border-gray-300 cursor-pointer" />
+                  <input type="text" value={dividerColor} onChange={(e) => setDividerColor(e.target.value)} className="flex-1 px-2 py-1.5 rounded-lg border border-gray-300 text-xs focus:outline-none focus:ring-2 focus:ring-teal-500" />
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1">Товч дэвсгэр өнгө</label>
+                <div className="flex gap-2">
+                  <input type="color" value={buttonColor} onChange={(e) => setButtonColor(e.target.value)} className="w-10 h-[38px] rounded border border-gray-300 cursor-pointer" />
+                  <input type="text" value={buttonColor} onChange={(e) => setButtonColor(e.target.value)} className="flex-1 px-2 py-1.5 rounded-lg border border-gray-300 text-xs focus:outline-none focus:ring-2 focus:ring-teal-500" />
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1">Товч текст өнгө</label>
+                <div className="flex gap-2">
+                  <input type="color" value={buttonTextColor} onChange={(e) => setButtonTextColor(e.target.value)} className="w-10 h-[38px] rounded border border-gray-300 cursor-pointer" />
+                  <input type="text" value={buttonTextColor} onChange={(e) => setButtonTextColor(e.target.value)} className="flex-1 px-2 py-1.5 rounded-lg border border-gray-300 text-xs focus:outline-none focus:ring-2 focus:ring-teal-500" />
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1">Товч текст хэмжээ</label>
+                <input type="text" value={buttonSize} onChange={(e) => setButtonSize(e.target.value)} className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500" placeholder="16px" />
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-4 flex justify-end">
             <button
               onClick={savePageSettings}
               disabled={headingSaving}
               className="px-4 py-2 bg-teal-600 text-white text-sm rounded-lg hover:bg-teal-700 transition-colors disabled:opacity-50 h-[38px]"
             >
-              {headingSaving ? 'Хадгалж байна...' : 'Гарчиг хадгалах'}
+              {headingSaving ? 'Хадгалж байна...' : 'Тохиргоо хадгалах'}
             </button>
           </div>
         </div>
