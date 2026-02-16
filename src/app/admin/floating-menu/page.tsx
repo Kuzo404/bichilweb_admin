@@ -331,6 +331,7 @@ export default function FloatingMenuPage() {
   // Social links state
   interface SocialLink {
     id?: number
+    float_menu?: number | null
     platform: string
     url: string
     hover_color: string
@@ -1284,6 +1285,7 @@ export default function FloatingMenuPage() {
                   hover_color: '#1877F2',
                   sort_order: socials.length,
                   active: true,
+                  float_menu: null,
                 }])
               }}
               className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-xl text-sm font-semibold hover:shadow-lg transition-all"
@@ -1359,6 +1361,25 @@ export default function FloatingMenuPage() {
                       {platformOptions.map(opt => (
                         <option key={opt.value} value={opt.value}>{opt.label}</option>
                       ))}
+                    </select>
+
+                    {/* Category (Бүлэг) Select */}
+                    <select
+                      value={social.float_menu ?? ''}
+                      onChange={(e) => {
+                        const updated = [...socials]
+                        updated[idx] = { ...updated[idx], float_menu: e.target.value ? Number(e.target.value) : null }
+                        setSocials(updated)
+                      }}
+                      className="px-3 py-2 rounded-lg border border-slate-300 text-sm bg-white focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                    >
+                      <option value="">Бүлэг сонгох...</option>
+                      {categories.map(cat => {
+                        const dbId = (cat as any).dbId || cat.id.replace('db-', '')
+                        return (
+                          <option key={cat.id} value={dbId}>{cat.name.mn || cat.name.en}</option>
+                        )
+                      })}
                     </select>
 
                     {/* URL Input */}
