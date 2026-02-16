@@ -288,6 +288,10 @@ export default function HeaderPage() {
         options.push({ label: '─── Мэдээ ───', value: '', disabled: true })
         options.push({ label: '  Мэдээ', value: '/news' })
 
+        // ── Хүний нөөц (HR / Careers) ──
+        options.push({ label: '─── Хүний нөөц ───', value: '', disabled: true })
+        options.push({ label: '  Хүний нөөц', value: '/about/hr' })
+
         // Гадаад линк (өөрөө бичих) сонголт
         options.push({ label: '─── Бусад ───', value: '', disabled: true })
         options.push({ label: 'Гадаад линк (өөрөө бичих)', value: 'custom' })
