@@ -99,8 +99,15 @@ export async function PUT(request: NextRequest) {
 
     // 3. Шинэ FloatMenu-нүүд үүсгэх (категори тус бүрт)
     const errors: string[] = []
+    // Хуучин ID → Шинэ ID mapping (socials-ийн float_menu FK шинэчлэхэд хэрэглэнэ)
+    const idMap: Record<number, number> = {}
 
     for (const category of categories) {
+      // Хуучин dbId авах (db-123 → 123)
+      const oldDbId = category.dbId || (typeof category.id === 'string' && category.id.startsWith('db-')
+        ? Number(category.id.replace('db-', ''))
+        : null)
+
       // Энэ категори дотор байгаа item-ууд олох
       const categoryItems = items.filter((item: any) => item.categoryId === category.id)
 
@@ -142,10 +149,22 @@ export async function PUT(request: NextRequest) {
         const errorText = await createRes.text()
         console.error(`FloatMenu үүсгэхэд алдаа: ${createRes.status}`, errorText)
         errors.push(`Категори "${category.name?.mn}" хадгалахад алдаа: ${createRes.status}`)
+      } else {
+        // Шинэ ID-г авч mapping-д хадгалах
+        const created = await createRes.json()
+        if (oldDbId && created?.id) {
+          idMap[oldDbId] = created.id
+        }
       }
     }
 
     // 4. Socials хадгалах (bulk replace)
+    // Хуучин float_menu ID-г шинэ ID-аар солих
+    const mappedSocials = socials.map((s: any) => ({
+      ...s,
+      float_menu: s.float_menu && idMap[s.float_menu] ? idMap[s.float_menu] : s.float_menu,
+    }))
+
     try {
       await fetch(`${BACKEND_URL}/float-menu-socials/bulk_update/`, {
         method: 'PUT',
@@ -153,7 +172,7 @@ export async function PUT(request: NextRequest) {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
         },
-        body: JSON.stringify({ socials }),
+        body: JSON.stringify({ socials: mappedSocials }),
       })
     } catch (e) {
       console.error('Float menu socials хадгалахад алдаа:', e)
