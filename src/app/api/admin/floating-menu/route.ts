@@ -77,7 +77,7 @@ function djangoToAdminFormat(djangoData: any[]) {
 export async function PUT(request: NextRequest) {
   try {
     const body = await request.json()
-    const { categories = [], items = [] } = body
+    const { categories = [], items = [], socials = [] } = body
 
     // 1. Одоо байгаа бүх FloatMenu-г авах
     const existingRes = await fetch(`${BACKEND_URL}/float-menu/`, {
@@ -145,7 +145,21 @@ export async function PUT(request: NextRequest) {
       }
     }
 
-    // 4. Хадгалсны дараа DB-ийн шинэ state-ийг дахин унших
+    // 4. Socials хадгалах (bulk replace)
+    try {
+      await fetch(`${BACKEND_URL}/float-menu-socials/bulk_update/`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: JSON.stringify({ socials }),
+      })
+    } catch (e) {
+      console.error('Float menu socials хадгалахад алдаа:', e)
+    }
+
+    // 5. Хадгалсны дараа DB-ийн шинэ state-ийг дахин унших
     const freshRes = await fetch(`${BACKEND_URL}/float-menu/`, {
       cache: 'no-store',
       headers: { 'Accept': 'application/json' },
@@ -153,11 +167,26 @@ export async function PUT(request: NextRequest) {
     const freshData = freshRes.ok ? await freshRes.json() : []
     const adminData = djangoToAdminFormat(freshData)
 
+    // Socials-г дахин унших
+    let freshSocials: any[] = []
+    try {
+      const socialsRes = await fetch(`${BACKEND_URL}/float-menu-socials/`, {
+        cache: 'no-store',
+        headers: { 'Accept': 'application/json' },
+      })
+      if (socialsRes.ok) {
+        freshSocials = await socialsRes.json()
+      }
+    } catch (e) {
+      console.error('Socials дахин уншихад алдаа:', e)
+    }
+
     if (errors.length > 0) {
       return NextResponse.json({
         success: false,
         error: errors.join('; '),
         ...adminData,
+        socials: freshSocials,
       }, { status: 207 })
     }
 
@@ -165,11 +194,12 @@ export async function PUT(request: NextRequest) {
       success: true,
       message: 'Floating menu амжилттай хадгалагдлаа',
       ...adminData,
+      socials: freshSocials,
     })
   } catch (error) {
     console.error('Floating menu хадгалахад алдаа:', error)
     return NextResponse.json(
-      { success: false, error: 'Хадгалахад алдаа гарлаа', categories: [], items: [] },
+      { success: false, error: 'Хадгалахад алдаа гарлаа', categories: [], items: [], socials: [] },
       { status: 500 }
     )
   }

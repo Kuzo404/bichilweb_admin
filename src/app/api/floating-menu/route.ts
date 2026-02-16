@@ -93,7 +93,21 @@ export async function GET() {
     const djangoData = await res.json()
     const adminData = djangoToAdminFormat(djangoData)
 
-    return NextResponse.json(adminData)
+    // Also fetch socials
+    let socials: any[] = []
+    try {
+      const socialsRes = await fetch(`${BACKEND_URL}/float-menu-socials/`, {
+        cache: 'no-store',
+        headers: { 'Accept': 'application/json' },
+      })
+      if (socialsRes.ok) {
+        socials = await socialsRes.json()
+      }
+    } catch (e) {
+      console.error('Float menu socials татахад алдаа:', e)
+    }
+
+    return NextResponse.json({ ...adminData, socials })
   } catch (error) {
     console.error('Floating menu татахад алдаа:', error)
     return NextResponse.json({ categories: [], items: [] })
