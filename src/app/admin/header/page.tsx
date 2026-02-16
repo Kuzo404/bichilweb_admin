@@ -158,6 +158,8 @@ export default function HeaderPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [isSavingToServer, setIsSavingToServer] = useState(false)
+  // Хадгалах/устгах явцын мэдээлэл
+  const [saveProgress, setSaveProgress] = useState<{ message: string; percent: number } | null>(null)
   // Өгөгдлийн сангаас ачаалахад алдаа гарвал хадгална
   const [fetchError, setFetchError] = useState<string | null>(null)
   // Өгөгдөл хаанаас ирснийг илэрхийлнэ: 'db' = өгөгдлийн сан, 'empty' = хоосон, 'error' = алдаа
@@ -626,6 +628,7 @@ export default function HeaderPage() {
   const handleSaveAll = async () => {
     try {
       setSaving(true)
+      setSaveProgress({ message: 'Өгөгдөл бэлтгэж байна...', percent: 10 })
 
       // Дотоод бүтцийг API бүтэц рүү хувиргах
       const apiData = transformInternalToApi()
@@ -643,11 +646,15 @@ export default function HeaderPage() {
         )
         if (!confirmed) {
           setSaving(false)
+          setSaveProgress(null)
           return
         }
       }
 
+      setSaveProgress({ message: 'Хуучин цэснүүдийг устгаж байна...', percent: 30 })
       console.log('📤 Өгөгдлийн санд хадгалж байна...', menuItems.length, 'цэс')
+      
+      setSaveProgress({ message: `${apiData.menus?.length || 0} цэсийг хадгалж байна...`, percent: 50 })
       
       const response = await fetch(`${API_BASE_URL}`, {
         method: 'POST',
@@ -664,16 +671,21 @@ export default function HeaderPage() {
       const result = await response.json()
       console.log('✅ Амжилттай хадгалагдлаа:', result)
       
+      setSaveProgress({ message: 'Шинэчлэгдсэн өгөгдлийг ачаалж байна...', percent: 85 })
       // Хадгалсны дараа өгөгдлийн сангаас дахин ачаалж шинэчлэх
       await fetchData()
       
+      setSaveProgress({ message: 'Амжилттай хадгалагдлаа! ✅', percent: 100 })
       setSaveSuccess(true)
-      setTimeout(() => setSaveSuccess(false), 4000)
+      setTimeout(() => {
+        setSaveSuccess(false)
+        setSaveProgress(null)
+      }, 2000)
       
-      alert('Цэсүүд өгөгдлийн санд амжилттай хадгалагдлаа! 🎉')
     } catch (error) {
       console.error('❌ Хадгалахад алдаа:', error)
       const errorMsg = error instanceof Error ? error.message : 'Тодорхойгүй алдаа'
+      setSaveProgress(null)
       alert(`Хадгалахад алдаа гарлаа:\n\n${errorMsg}\n\nConsole-г нээж дэлгэрүүлэн үзнэ үү (F12).`)
     } finally {
       setSaving(false)
@@ -747,6 +759,7 @@ export default function HeaderPage() {
     // Өгөгдлийн сангаас автоматаар устгах (full save хийнэ)
     try {
       setSaving(true)
+      setSaveProgress({ message: `${idsToDelete.size} цэсийг устгаж байна...`, percent: 20 })
       
       // Үлдсэн цэснүүдийг API формат руу хөрвүүлэх
       const rootItems = remainingItems.filter(i => !i.parentId).sort((a, b) => a.order - b.order)
@@ -815,6 +828,8 @@ export default function HeaderPage() {
 
       console.log('🗑️ Цэс устгаад DB руу хадгалж байна...', JSON.stringify(apiData.menus?.length))
       
+      setSaveProgress({ message: 'Серверт хадгалж байна...', percent: 50 })
+      
       const response = await fetch(`${API_BASE_URL}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -830,11 +845,16 @@ export default function HeaderPage() {
       const result = await response.json()
       console.log('✅ Устгалт амжилттай хадгалагдлаа:', result)
       
+      setSaveProgress({ message: 'Амжилттай устгагдлаа! ✅', percent: 100 })
       setOriginalMenuItems(JSON.parse(JSON.stringify(remainingItems)))
       setSaveSuccess(true)
-      setTimeout(() => setSaveSuccess(false), 3000)
+      setTimeout(() => {
+        setSaveSuccess(false)
+        setSaveProgress(null)
+      }, 2000)
     } catch (error) {
       console.error('Устгаад хадгалахад алдаа:', error)
+      setSaveProgress(null)
       alert(`Устгахад алдаа гарлаа. Дахин оролдоно уу.`)
       // Reload to get correct state from DB
       fetchData()
@@ -934,6 +954,41 @@ export default function HeaderPage() {
 
   return (
     <AdminLayout title="Header тохиргоо">
+      {/* Progress Overlay */}
+      {saveProgress && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center">
+          <div className="bg-white rounded-2xl shadow-2xl p-8 w-96 max-w-[90vw]">
+            <div className="text-center mb-4">
+              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-teal-50 mb-4">
+                {saveProgress.percent < 100 ? (
+                  <svg className="animate-spin h-8 w-8 text-teal-600" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                  </svg>
+                ) : (
+                  <svg className="h-8 w-8 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                )}
+              </div>
+              <p className="text-lg font-semibold text-slate-800">{saveProgress.message}</p>
+              <p className="text-sm text-slate-500 mt-1">{saveProgress.percent}%</p>
+            </div>
+            <div className="w-full bg-slate-100 rounded-full h-3 overflow-hidden">
+              <div
+                className="h-full rounded-full transition-all duration-500 ease-out"
+                style={{
+                  width: `${saveProgress.percent}%`,
+                  background: saveProgress.percent < 100
+                    ? 'linear-gradient(90deg, #0d9488, #14b8a6)'
+                    : 'linear-gradient(90deg, #10b981, #34d399)',
+                }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="max-w-5xl mx-auto">
         <PageHeader
           title="Header удирдлага"

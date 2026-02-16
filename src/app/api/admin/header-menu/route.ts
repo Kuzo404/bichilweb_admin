@@ -119,32 +119,16 @@ export async function POST(request: NextRequest) {
     }
 
     if (hasNewMenus) {
-    console.log('🗑️ Хуучин цэснүүдийг устгаж байна...')
-    const existingRes = await fetch(`${BACKEND_URL}/headers/${headerId}/`, {
-      headers: { 'Accept': 'application/json' },
+    console.log('🗑️ Хуучин цэснүүдийг bulk устгаж байна...')
+    // CASCADE: HeaderMenu устгахад submenu + tertiary автоматаар устгагдана
+    const bulkDelRes = await fetch(`${BACKEND_URL}/header-menu/bulk_delete/?header_id=${headerId}`, {
+      method: 'DELETE',
     })
-
-    if (existingRes.ok) {
-      const existing = await existingRes.json()
-      const existingMenus = existing.menus || []
-      let deletedCount = { tertiary: 0, submenu: 0, menu: 0 }
-
-      // Гүнзгийрүүлж устгах: tertiary → submenu → menu
-      for (const menu of existingMenus) {
-        for (const sub of (menu.submenus || [])) {
-          for (const ter of (sub.tertiary_menus || [])) {
-            const delRes = await fetch(`${BACKEND_URL}/header-tertiary/${ter.id}/`, { method: 'DELETE' })
-            if (delRes.ok) deletedCount.tertiary++
-          }
-          const delRes = await fetch(`${BACKEND_URL}/header-submenu/${sub.id}/`, { method: 'DELETE' })
-          if (delRes.ok) deletedCount.submenu++
-        }
-        const delRes = await fetch(`${BACKEND_URL}/header-menu/${menu.id}/`, { method: 'DELETE' })
-        if (delRes.ok) deletedCount.menu++
-      }
-      console.log(`  ✅ Устгагдлаа: ${deletedCount.menu} меню, ${deletedCount.submenu} дэд цэс, ${deletedCount.tertiary} 3-р цэс`)
+    if (bulkDelRes.ok) {
+      const bulkData = await bulkDelRes.json()
+      console.log(`  ✅ Bulk устгагдлаа: ${bulkData.deleted} цэс (CASCADE-ээр дэд цэснүүд устгагдсан)`)
     } else {
-      console.log('  ℹ️ Хуучин цэс олдсонгүй')
+      console.log('  ℹ️ Bulk устгалт:', bulkDelRes.status)
     }
     } // hasNewMenus if блок хаалт
 
