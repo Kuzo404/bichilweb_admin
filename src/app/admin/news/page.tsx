@@ -37,6 +37,7 @@ interface ApiNewsItem {
   image: string
   image_url?: string
   video: string
+  video_orientation: string
   feature: boolean
   render: boolean
   show_on_home: boolean
@@ -99,6 +100,7 @@ interface NewsItem {
   socialLinks: SocialLink[]
   additionalImages?: string[]
   videoUrl?: string
+  videoOrientation?: string
 }
 
 interface SocialLink {
@@ -212,6 +214,7 @@ const mapApiNewsToAdmin = (item: ApiNewsItem): NewsItem => {
     })),
     additionalImages: item.images.map(img => img.image),
     videoUrl: item.video,
+    videoOrientation: item.video_orientation || 'horizontal',
   }
 }
 
@@ -273,6 +276,7 @@ export default function NewsPage() {
   const [showAddCategory, setShowAddCategory] = useState(false)
   const [additionalImages, setAdditionalImages] = useState<string[]>([])
   const [videoUrl, setVideoUrl] = useState('')
+  const [videoOrientation, setVideoOrientation] = useState<'horizontal' | 'vertical'>('horizontal')
   const [bannerImageFile, setBannerImageFile] = useState<File | null>(null)
   const [latestHeading, setLatestHeading] = useState('Сүүлийн мэдээнүүд')
   const [featuredHeading, setFeaturedHeading] = useState('Онцлох мэдээ')
@@ -430,6 +434,7 @@ export default function NewsPage() {
 
       formDataToSend.append('category', formData.category.toString())
       formDataToSend.append('video', videoUrl || '')
+      formDataToSend.append('video_orientation', videoOrientation)
       formDataToSend.append('feature', formData.isPinnedNews.toString())
       formDataToSend.append('render', formData.isActive.toString())
       formDataToSend.append('show_on_home', formData.isPinnedHome.toString())
@@ -638,6 +643,7 @@ export default function NewsPage() {
     })
     setAdditionalImages(item.additionalImages || [])
     setVideoUrl(item.videoUrl || '')
+    setVideoOrientation((item.videoOrientation as 'horizontal' | 'vertical') || 'horizontal')
     setBannerImageFile(null)
     setModalOpen(true)
   }
@@ -669,6 +675,7 @@ export default function NewsPage() {
     setSuccessMessage('')
     setAdditionalImages([])
     setVideoUrl('')
+    setVideoOrientation('horizontal')
     setBannerImageFile(null)
   }
 
@@ -1008,7 +1015,7 @@ export default function NewsPage() {
             <div key={item.id} className="group bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300">
               <div className="relative aspect-4/3 overflow-hidden bg-gray-100">
                 {item.bannerImage ? (
-                  <Image src={item.bannerImage} alt={item.title_mn} fill className="object-cover transition-transform duration-500 group-hover:scale-105" />
+                  <Image src={item.bannerImage} alt={stripHtml(item.title_mn)} fill className="object-cover transition-transform duration-500 group-hover:scale-105" />
                 ) : (
                   <div className="flex items-center justify-center h-full">
                     <svg className="w-12 h-12 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1046,8 +1053,8 @@ export default function NewsPage() {
                   </span>
                   <span className="text-slate-500">{new Date(item.publishedAt).toLocaleDateString('mn-MN')}</span>
                 </div>
-                <h3 className="font-semibold text-slate-800 line-clamp-2 mb-2">{item.title_mn}</h3>
-                <p className="text-xs text-slate-500 line-clamp-2">{item.excerpt_mn}</p>
+                <h3 className="font-semibold text-slate-800 line-clamp-2 mb-2">{stripHtml(item.title_mn)}</h3>
+                <p className="text-xs text-slate-500 line-clamp-2">{stripHtml(item.excerpt_mn)}</p>
                 {(item.socialLinks && item.socialLinks.length > 0) && (
                   <div className="flex flex-wrap gap-2 mt-3 text-xs text-slate-600">
                     {item.socialLinks.filter((link) => link.active).map((link) => (
@@ -1226,13 +1233,42 @@ export default function NewsPage() {
               placeholder="https://www.youtube.com/watch?v=... эсвэл бусад видео линк" 
               error={formErrors.video} 
             />
+            {videoUrl && (
+              <div className="mt-3 flex items-center gap-4">
+                <span className="text-sm font-medium text-gray-700">Видео чиглэл:</span>
+                <div className="flex bg-gray-100 rounded-lg p-0.5">
+                  <button
+                    type="button"
+                    onClick={() => setVideoOrientation('horizontal')}
+                    className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
+                      videoOrientation === 'horizontal'
+                        ? 'bg-white text-gray-900 shadow-sm'
+                        : 'text-gray-500 hover:text-gray-700'
+                    }`}
+                  >
+                    ⬜ Хэвтээ
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setVideoOrientation('vertical')}
+                    className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
+                      videoOrientation === 'vertical'
+                        ? 'bg-white text-gray-900 shadow-sm'
+                        : 'text-gray-500 hover:text-gray-700'
+                    }`}
+                  >
+                    ⬜ Босоо
+                  </button>
+                </div>
+              </div>
+            )}
             {videoUrl && toEmbedUrl(videoUrl) && (
-              <div className="mt-4 rounded-lg border border-gray-200 overflow-hidden bg-black flex items-center justify-center" style={{ maxHeight: '400px' }}>
+              <div className={`mt-4 rounded-lg border border-gray-200 overflow-hidden bg-black flex items-center justify-center ${videoOrientation === 'vertical' ? 'max-w-[300px] mx-auto' : ''}`} style={{ maxHeight: '400px' }}>
                 <iframe 
                   src={toEmbedUrl(videoUrl)} 
                   title="preview-video" 
-                  className="w-full"
-                  style={{ aspectRatio: '16/9', maxHeight: '400px' }}
+                  className={videoOrientation === 'vertical' ? 'w-full' : 'w-full'}
+                  style={{ aspectRatio: videoOrientation === 'vertical' ? '9/16' : '16/9', maxHeight: '400px' }}
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
                   allowFullScreen 
                 />
