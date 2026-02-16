@@ -296,6 +296,15 @@ export default function NewsPage() {
   const [buttonTextColor, setButtonTextColor] = useState('#ffffff')
   const [buttonSize, setButtonSize] = useState('16px')
 
+  // Facebook Panel state
+  const [fbPanelOpen, setFbPanelOpen] = useState(false)
+  const [fbUrl, setFbUrl] = useState('')
+  const [fbCategory, setFbCategory] = useState(0)
+  const [fbIsPinned, setFbIsPinned] = useState(false)
+  const [fbIsHome, setFbIsHome] = useState(false)
+  const [fbSocialLinks, setFbSocialLinks] = useState<SocialLink[]>([])
+  const [fbSaving, setFbSaving] = useState(false)
+
   useEffect(() => {
     fetchNews()
     fetchCategories()
@@ -827,6 +836,88 @@ export default function NewsPage() {
     return <span className="inline-flex items-center justify-center text-gray-600">{renderPlatformSVG(platform || '')}</span>
   }
 
+  // ===== FACEBOOK PANEL HANDLERS =====
+  const handleAddFbSocialLink = () => {
+    const urlInput = document.getElementById('fb-social-url') as HTMLInputElement
+    const platformSelect = document.getElementById('fb-social-platform') as HTMLSelectElement
+    const iconInput = document.getElementById('fb-social-icon') as HTMLInputElement
+    const newSocialUrl = urlInput?.value?.trim() || ''
+    const selectedPlatform = platformSelect?.value || ''
+    const customIcon = iconInput?.value?.trim() || ''
+    if (!newSocialUrl) { alert('URL оруулна уу'); return }
+    const platform = selectedPlatform || derivePlatformFromUrl(newSocialUrl)
+    const newLink: SocialLink = { id: `${Date.now()}`, platform, url: newSocialUrl, active: true, icon: customIcon || '' }
+    setFbSocialLinks([...fbSocialLinks, newLink])
+    if (urlInput) urlInput.value = ''
+    if (iconInput) iconInput.value = ''
+    if (platformSelect) platformSelect.value = ''
+  }
+
+  const handleToggleFbSocialLink = (id: string) => {
+    setFbSocialLinks(fbSocialLinks.map((link) => link.id === id ? { ...link, active: !link.active } : link))
+  }
+
+  const handleDeleteFbSocialLink = (id: string) => {
+    setFbSocialLinks(fbSocialLinks.filter((link) => link.id !== id))
+  }
+
+  const handleSaveFacebookPost = async () => {
+    if (!fbUrl.trim()) {
+      setErrorMessage('Facebook URL оруулна уу')
+      setTimeout(() => setErrorMessage(''), 3000)
+      return
+    }
+    setFbSaving(true)
+    setErrorMessage('')
+    setSuccessMessage('')
+    try {
+      const fd = new FormData()
+      fd.append('category', (fbCategory || (categoryTabs[0]?.id ?? 1)).toString())
+      fd.append('video', '')
+      fd.append('video_orientation', 'horizontal')
+      fd.append('facebook_url', fbUrl)
+      fd.append('feature', fbIsPinned.toString())
+      fd.append('render', 'true')
+      fd.append('show_on_home', fbIsHome.toString())
+      fd.append('readtime', '1')
+      fd.append('slug', '')
+      fd.append('date', new Date().toISOString())
+      fd.append('title_translations', JSON.stringify([
+        { language: 1, label: 'Facebook пост', font: '', family: 'Roboto', weight: '700', size: '24' },
+        { language: 2, label: 'Facebook Post', font: '', family: 'Roboto', weight: '700', size: '24' },
+      ]))
+      fd.append('shortdesc_translations', JSON.stringify([
+        { language: 1, label: '', font: '', family: 'Roboto', weight: '400', size: '14' },
+        { language: 2, label: '', font: '', family: 'Roboto', weight: '400', size: '14' },
+      ]))
+      fd.append('content_translations', JSON.stringify([
+        { language: 1, label: '', font: '', family: 'Roboto', weight: '400', size: '14' },
+        { language: 2, label: '', font: '', family: 'Roboto', weight: '400', size: '14' },
+      ]))
+      fd.append('socials', JSON.stringify(
+        fbSocialLinks.filter((l) => l.active).map((l) => ({ social: l.url, icon: l.platform }))
+      ))
+      fd.append('images', JSON.stringify([]))
+      const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api/v1'
+      await axios.post(`${apiBase}/news/`, fd, { timeout: 30000 })
+      setSuccessMessage('Facebook пост амжилттай нэмэгдлээ')
+      setTimeout(() => setSuccessMessage(''), 3000)
+      setFbUrl('')
+      setFbIsPinned(false)
+      setFbIsHome(false)
+      setFbSocialLinks([])
+      fetchNews()
+    } catch (error: any) {
+      console.error('Facebook post save error:', error)
+      let msg = 'Facebook пост нэмэхэд алдаа гарлаа'
+      if (error.response?.data?.detail) msg = error.response.data.detail
+      setErrorMessage(msg)
+      setTimeout(() => setErrorMessage(''), 4000)
+    } finally {
+      setFbSaving(false)
+    }
+  }
+
   return (
     <AdminLayout title="Мэдээ">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -993,6 +1084,173 @@ export default function NewsPage() {
               {headingSaving ? 'Хадгалж байна...' : 'Тохиргоо хадгалах'}
             </button>
           </div>
+        </div>
+
+        {/* Facebook Post Panel */}
+        <div className="mb-6 bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+          <button
+            type="button"
+            onClick={() => setFbPanelOpen(!fbPanelOpen)}
+            className="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <svg className="w-6 h-6 text-blue-600" fill="currentColor" viewBox="0 0 24 24"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" /></svg>
+              <h3 className="text-sm font-semibold text-gray-700">Facebook пост нэмэх</h3>
+            </div>
+            <svg className={`w-5 h-5 text-gray-400 transition-transform ${fbPanelOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+          </button>
+
+          {fbPanelOpen && (
+            <div className="px-4 pb-4 space-y-4 border-t border-gray-100">
+              <p className="text-xs text-gray-500 pt-3">
+                Facebook пост-ийн линкийг оруулбал мэдээ хэлбэрээр нэмэгдэнэ.
+              </p>
+
+              <Input
+                label="Facebook Post URL"
+                value={fbUrl}
+                onChange={(e) => setFbUrl(e.target.value)}
+                placeholder="https://www.facebook.com/username/posts/123456789..."
+              />
+
+              {fbUrl && (
+                <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                  <p className="text-sm text-blue-800 flex items-center gap-2">
+                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" /></svg>
+                    Facebook пост embed хэлбэрээр харагдана
+                  </p>
+                  <p className="text-xs text-blue-600 mt-1 break-all">{fbUrl}</p>
+                </div>
+              )}
+
+              <Select
+                label="Ангилал"
+                value={fbCategory}
+                onChange={(e) => setFbCategory(Number(e.target.value))}
+                options={categoryTabs.map(cat => ({ value: cat.id, label: cat.label_mn }))}
+              />
+
+              <div className="flex items-center gap-3">
+                <input
+                  id="fb-pin-news"
+                  type="checkbox"
+                  checked={fbIsPinned}
+                  onChange={(e) => setFbIsPinned(e.target.checked)}
+                  className="h-4 w-4 text-teal-600 rounded"
+                />
+                <label htmlFor="fb-pin-news" className="text-sm font-semibold text-gray-900">
+                  Онцлох (Мэдээ хуудас)
+                </label>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <input
+                  id="fb-show-home"
+                  type="checkbox"
+                  checked={fbIsHome}
+                  onChange={(e) => setFbIsHome(e.target.checked)}
+                  className="h-4 w-4 text-teal-600 rounded"
+                />
+                <label htmlFor="fb-show-home" className="text-sm font-semibold text-gray-900">
+                  Нүүр хуудсанд харуулах
+                </label>
+              </div>
+
+              {/* Social Links for Facebook panel */}
+              <div className="border border-gray-200 rounded-lg p-3">
+                <h4 className="text-sm font-semibold text-gray-900 mb-1">Сошиал холбоос</h4>
+                <p className="text-xs text-gray-500 mb-3">Сошиал суваг нэмнэ үү.</p>
+                <div className="grid gap-3 md:grid-cols-4 items-end">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Суваг</label>
+                    <select id="fb-social-platform" className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-teal-500 focus:border-teal-500">
+                      <option value="">Авто таних</option>
+                      {SOCIAL_PLATFORMS.map(p => (
+                        <option key={p.value} value={p.value}>{p.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="md:col-span-2">
+                    <Input
+                      id="fb-social-url"
+                      label="URL"
+                      placeholder="https://facebook.com/yourpage"
+                    />
+                  </div>
+                  <Button
+                    type="button"
+                    onClick={handleAddFbSocialLink}
+                  >
+                    + Нэмэх
+                  </Button>
+                </div>
+                <div className="mt-2">
+                  <Input
+                    id="fb-social-icon"
+                    label="Icon (SVG эсвэл зургийн URL, сонгон)"
+                    placeholder="https://example.com/icon.png эсвэл <svg>...</svg>"
+                  />
+                </div>
+
+                {fbSocialLinks.length > 0 && (
+                  <div className="mt-4 space-y-2">
+                    {fbSocialLinks.map((link) => (
+                      <div key={link.id} className={`flex items-center justify-between gap-3 rounded-lg border px-3 py-2.5 transition-colors ${link.active ? 'border-gray-200 bg-gray-50' : 'border-gray-100 bg-gray-100 opacity-50'}`}>
+                        <div className="flex items-center gap-3 min-w-0">
+                          <input
+                            type="checkbox"
+                            checked={link.active}
+                            onChange={() => handleToggleFbSocialLink(link.id)}
+                            className="h-4 w-4 rounded text-teal-600"
+                          />
+                          {renderSocialIcon(link.icon, link.platform)}
+                          <div className="min-w-0">
+                            <div className="text-sm font-semibold text-gray-900 capitalize">{SOCIAL_PLATFORMS.find(p => p.value === link.platform)?.label || link.platform}</div>
+                            <a
+                              href={link.url}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="text-xs text-teal-700 hover:underline block truncate max-w-[280px]"
+                            >
+                              {link.url}
+                            </a>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteFbSocialLink(link.id)}
+                          className="p-2 rounded-lg bg-white text-red-600 border border-red-200 hover:bg-red-50 flex-shrink-0"
+                        >
+                          <TrashIcon className="h-4 w-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  onClick={handleSaveFacebookPost}
+                  disabled={fbSaving}
+                  className="px-5 py-2.5 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center gap-2"
+                >
+                  {fbSaving ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      Хадгалж байна...
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" /></svg>
+                      Facebook пост нэмэх
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Category Tabs */}
@@ -1360,32 +1618,6 @@ export default function NewsPage() {
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
                   allowFullScreen 
                 />
-              </div>
-            )}
-          </div>
-
-          {/* Facebook Post Embed */}
-          <div className="border border-gray-200 rounded-lg p-4">
-            <h5 className="text-base font-semibold text-gray-900 mb-2 flex items-center gap-2">
-              <svg className="w-5 h-5 text-blue-600" fill="currentColor" viewBox="0 0 24 24"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" /></svg>
-              Facebook пост оруулах
-            </h5>
-            <p className="text-xs text-gray-500 mb-3">
-              Facebook пост-ийн линкийг оруулбал мэдээний дотор Facebook пост embed хэлбэрээр харагдана.
-            </p>
-            <Input 
-              label="Facebook Post URL" 
-              value={facebookUrl} 
-              onChange={(e) => setFacebookUrl(e.target.value)} 
-              placeholder="https://www.facebook.com/username/posts/123456789..." 
-            />
-            {facebookUrl && (
-              <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                <p className="text-sm text-blue-800 flex items-center gap-2">
-                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" /></svg>
-                  Facebook пост embed хэлбэрээр харагдана
-                </p>
-                <p className="text-xs text-blue-600 mt-1 break-all">{facebookUrl}</p>
               </div>
             )}
           </div>
