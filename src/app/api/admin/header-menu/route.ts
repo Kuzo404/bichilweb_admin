@@ -69,19 +69,12 @@ export async function POST(request: NextRequest) {
   const startTime = Date.now()
   try {
     const body = await request.json()
-    console.log('='.repeat(60))
-    console.log('Header хадгалж байна... Цаг:', new Date().toLocaleTimeString())
-    console.log('Menu items:', body.menus?.length || 0)
-    console.log('Source ID:', body.id)
-    console.log('Logo URL:', body.logo ? body.logo.substring(0, 50) + '...' : 'No logo')
-    console.log('='.repeat(60))
 
     // ── 1. Header бичлэг үүсгэх / шинэчлэх ──
     let headerId = body.id
 
     if (headerId) {
       // Байгаа header-г шинэчлэх
-      console.log(`📝 Header ${headerId} шинэчлэж байна...`)
       const headerUpdateRes = await fetch(`${BACKEND_URL}/headers/${headerId}/`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -92,10 +85,8 @@ export async function POST(request: NextRequest) {
         console.error('❌ Header шинэчлэхэд алдаа:', headerUpdateRes.status, errText)
         throw new Error(`Header шинэчлэхэд алдаа: ${headerUpdateRes.status} ${errText}`)
       }
-      console.log('✅ Header шинэчлэгдлээ')
     } else {
       // Шинэ header үүсгэх
-      console.log('➕ Шинэ Header үүсгэж байна...')
       const headerRes = await fetch(`${BACKEND_URL}/headers/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -108,28 +99,17 @@ export async function POST(request: NextRequest) {
       }
       const headerData = await headerRes.json()
       headerId = headerData.id
-      console.log('✅ Header үүсгэгдлээ. ID:', headerId)
     }
 
     // ── 2. Хуучин цэснүүдийг устгах (шинэ цэснүүд байгаа үед л) ──
     // ⚠️ Хамгаалалт: Хэрвээ шинэ цэс 0 бол хуучныг устгахгүй (санамсаргүй устгалтаас сэргийлнэ)
     const hasNewMenus = body.menus && body.menus.length > 0
-    if (!hasNewMenus) {
-      console.log('⚠️ Шинэ цэс байхгүй — хуучин цэснүүдийг хадгалж үлдээв')
-    }
 
     if (hasNewMenus) {
-    console.log('🗑️ Хуучин цэснүүдийг bulk устгаж байна...')
     // CASCADE: HeaderMenu устгахад submenu + tertiary автоматаар устгагдана
     const bulkDelRes = await fetch(`${BACKEND_URL}/header-menu/bulk_delete/?header_id=${headerId}`, {
       method: 'DELETE',
     })
-    if (bulkDelRes.ok) {
-      const bulkData = await bulkDelRes.json()
-      console.log(`  ✅ Bulk устгагдлаа: ${bulkData.deleted} цэс (CASCADE-ээр дэд цэснүүд устгагдсан)`)
-    } else {
-      console.log('  ℹ️ Bulk устгалт:', bulkDelRes.status)
-    }
     } // hasNewMenus if блок хаалт
 
     // ── 3. Шинэ цэснүүдийг үүсгэх ──
@@ -276,7 +256,6 @@ export async function POST(request: NextRequest) {
     }
     
     const updatedData = await updatedRes.json()
-    console.log('✅ Шинэчлэгдсэн header буцаалаа:', JSON.stringify(updatedData, null, 2))
 
     return NextResponse.json(updatedData, { status: 200 })
   } catch (error) {
@@ -321,8 +300,6 @@ export async function DELETE(request: NextRequest) {
       )
     }
 
-    console.log(`🗑️ ${type} цэс устгаж байна... ID: ${id}`)
-
     // CASCADE устгалт: menu → submenus → tertiary_menus автоматаар устгагдана
     const delRes = await fetch(`${BACKEND_URL}/${endpoint}/${id}/`, {
       method: 'DELETE',
@@ -337,7 +314,6 @@ export async function DELETE(request: NextRequest) {
       )
     }
 
-    console.log(`✅ ${type} ID:${id} устгагдлаа`)
     return NextResponse.json({ success: true, deleted: { type, id: Number(id) } })
   } catch (error) {
     console.error('Цэс устгахад алдаа:', error)

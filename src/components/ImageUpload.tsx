@@ -41,7 +41,6 @@ export default function ImageUpload({ value, onChange, label, skipUpload = false
         const uploadedUrl = data.url || data.file_url || ''
         if (uploadedUrl) {
           onChange(uploadedUrl, file)
-          console.log('Зураг серверт амжилттай upload хийгдлээ:', uploadedUrl)
         } else {
           throw new Error('Upload response байхгүй URL')
         }

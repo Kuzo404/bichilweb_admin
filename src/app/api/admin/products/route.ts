@@ -115,14 +115,6 @@ export async function POST(req: NextRequest) {
     }
 
     const response = await axiosInstance.post('/product/', productData)
-    
-    console.log(`[${mode === 'auto' ? 'AUTO-SAVE' : 'MANUAL SAVE'}]`, {
-      id: productData.id,
-      name_mn: data.name_mn,
-      name_en: data.name_en,
-      product_type: productData.product_type,
-      timestamp: new Date().toISOString(),
-    })
 
     return NextResponse.json({ 
       success: true, 

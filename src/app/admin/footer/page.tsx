@@ -109,21 +109,18 @@ const backendToFrontend = (backend: FooterDataBackend): FooterDataFrontend => {
   
   if (backend.svg && backend.svg.trim() !== '') {
     logoImage = { type: 'svg', value: backend.svg }
-    console.log('📷 Using SVG logo')
   } else if (backend.logo_url && backend.logo_url.trim() !== '') {
     const baseUrl = process.env.NEXT_PUBLIC_MEDIA_URL || 'http://127.0.0.1:8000'
     const fullUrl = backend.logo_url.startsWith('http') 
       ? backend.logo_url 
       : `${baseUrl}${backend.logo_url}`
     logoImage = { type: 'upload', value: fullUrl }
-    console.log('📷 Logo image URL:', fullUrl)
   } else if (backend.logo && backend.logo.trim() !== '') {
     const baseUrl = process.env.NEXT_PUBLIC_MEDIA_URL || 'http://127.0.0.1:8000'
     const fullUrl = backend.logo.startsWith('http') 
       ? backend.logo 
       : `${baseUrl}/media/footer/${backend.logo}`
     logoImage = { type: 'upload', value: fullUrl }
-    console.log('📷 Logo image URL (from logo field):', fullUrl)
   }
 
   return {
@@ -180,10 +177,8 @@ const frontendToFormData = (frontend: FooterDataFrontend): FormData => {
 
   if (frontend.logoImage.type === 'svg' && frontend.logoImage.value.trim() !== '') {
     formData.append('svg', frontend.logoImage.value)
-    console.log('📤 Sending SVG logo')
   } else if (frontend.logoFile) {
     formData.append('logo', frontend.logoFile)
-    console.log('📤 Sending image file logo')
   }
 
   const validSocials = frontend.socials
@@ -196,7 +191,6 @@ const frontendToFormData = (frontend: FooterDataFrontend): FormData => {
     }))
   
   formData.append('socials', JSON.stringify(validSocials))
-  console.log('📤 Valid socials to send:', validSocials)
 
   const validUrls = frontend.quick_links
     .filter(link => {
@@ -211,17 +205,6 @@ const frontendToFormData = (frontend: FooterDataFrontend): FormData => {
     }))
 
   formData.append('urls', JSON.stringify(validUrls))
-  console.log('📤 Valid URLs to send:', validUrls)
-
-  console.log('📦 Final FormData summary:', {
-    logotext: frontend.logoText,
-    has_logo_file: !!frontend.logoFile,
-    has_svg: frontend.logoImage.type === 'svg' && frontend.logoImage.value.trim() !== '',
-    titlesize: tailwindToPixel(frontend.titleSize),
-    fontsize: tailwindToPixel(frontend.textSize),
-    socials_count: validSocials.length,
-    urls_count: validUrls.length
-  })
 
   return formData
 }
@@ -649,12 +632,6 @@ export default function FooterPage() {
       if (response.data && response.data.length > 0) {
         const footerData = backendToFrontend(response.data[0])
         setData(footerData)
-        console.log('✅ Footer loaded successfully')
-        console.log('📊 Loaded data:', {
-          socials: footerData.socials.length,
-          quick_links: footerData.quick_links.length,
-          has_logo: !!footerData.logoImage.value
-        })
       }
     } catch (error) {
       console.error('❌ Error fetching footer:', error)
@@ -671,7 +648,6 @@ export default function FooterPage() {
 
       let response
       if (data.backend_id) {
-        console.log('🔄 Updating footer ID:', data.backend_id)
         response = await axiosInstance.put<FooterDataBackend>(
           `/footer/${data.backend_id}/`,
           formData,
@@ -680,7 +656,6 @@ export default function FooterPage() {
           }
         )
       } else {
-        console.log('🚀 Creating new footer')
         response = await axiosInstance.post<FooterDataBackend>(
           '/footer/',
           formData,
@@ -690,9 +665,6 @@ export default function FooterPage() {
         )
       }
 
-      console.log('✅ Footer saved successfully')
-      console.log('📊 Response data:', response.data)
-      
       const updatedData = backendToFrontend(response.data)
       setData(updatedData)
 
@@ -720,7 +692,6 @@ export default function FooterPage() {
       logoImage: { type: 'upload', value: imageUrl },
       logoFile: file
     })
-    console.log('📷 Image file selected:', file.name)
   }
 
   useEffect(() => {
@@ -1072,7 +1043,6 @@ export default function FooterPage() {
                 onClick={() => {
                   const newLink: QuickLink = { namemn: '', nameen: '', url: '' }
                   setData({ ...data, quick_links: [...data.quick_links, newLink] })
-                  console.log('➕ New quick link form added')
                 }}
                 className="px-3 py-1.5 bg-teal-100 text-teal-700 rounded-lg text-sm font-semibold hover:bg-teal-200 transition-colors flex items-center gap-2"
               >
@@ -1135,7 +1105,6 @@ export default function FooterPage() {
                         if (confirm(`"${link.namemn || link.nameen || 'Энэ холбоос'}" устгах уу?`)) {
                           const updatedLinks = data.quick_links.filter((_, i) => i !== idx)
                           setData({ ...data, quick_links: updatedLinks })
-                          console.log('🗑️ Quick link deleted, remaining:', updatedLinks.length)
                         }
                       }}
                       className="px-3 py-1.5 text-red-600 hover:bg-red-50 rounded-lg text-sm font-medium transition-colors flex items-center gap-2"

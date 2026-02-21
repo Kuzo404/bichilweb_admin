@@ -70,8 +70,6 @@ export function ProductProvider({ children }: { children: React.ReactNode }) {
       
       const response = await axiosInstance.get('/product/')
 
-      console.log(response)
-
       if (response.data) {
         setProducts(response?.data)
       } else {

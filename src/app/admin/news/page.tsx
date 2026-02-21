@@ -480,13 +480,6 @@ export default function NewsPage() {
         }))
       ))
 
-      console.log('📤 Socials being sent:', JSON.stringify(
-        (formData.socialLinks || []).filter((link: SocialLink) => link.active).map((link: SocialLink) => ({
-          social: link.url,
-          icon: link.platform,
-        }))
-      ))
-
       formDataToSend.append('title_translations', JSON.stringify([
         {
           language: 1,
@@ -560,8 +553,6 @@ export default function NewsPage() {
       await fetchNews()
       setTimeout(() => { handleCloseModal(); setSuccessMessage('') }, 1500)
     } catch (error: any) {
-      console.log('Response status:', error?.response?.status)
-      console.log('Response data:', JSON.stringify(error?.response?.data))
       console.error('Submit error:', error)
       let errorMsg = editingNews ? 'Шинэчлэхэд алдаа гарлаа' : 'Үүсгэхэд алдаа гарлаа'
       

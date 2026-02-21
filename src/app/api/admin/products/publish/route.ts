@@ -15,12 +15,6 @@ export async function POST(req: NextRequest) {
     // TODO: Update product status in database
     // Example: await db.products.update({ where: { id }, data: { status: 'published', publishedAt: new Date() } })
     
-    console.log('[PUBLISH]', {
-      id,
-      status: 'published',
-      timestamp: new Date().toISOString(),
-    })
-
     return NextResponse.json({ 
       success: true, 
       message: 'Product published successfully',

@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { XMarkIcon, DocumentTextIcon, PlusIcon, TrashIcon } from '@heroicons/react/24/outline'
+import { getTranslation } from '@/lib/utils'
 
 interface Translation {
   id: number
@@ -28,11 +29,6 @@ interface DocumentSelectorProps {
   onAdd: (document: Document) => Promise<boolean>
   onRemove: (documentId: number) => Promise<boolean>
   loading?: boolean
-}
-
-const getTranslation = (translations: Translation[], languageId: number): string => {
-  const translation = translations.find(t => t.language === languageId)
-  return translation?.label || ''
 }
 
 export default function DocumentSelector({
@@ -216,10 +212,10 @@ export default function DocumentSelector({
                           
                           <div className="flex-1 min-w-0">
                             <p className="font-semibold text-gray-900 group-hover:text-teal-700 transition-colors truncate">
-                              {getTranslation(doc.translations, 2)}
+                              {getTranslation(doc.translations, 'en')}
                             </p>
                             <p className="text-sm text-gray-600 truncate mt-1">
-                              {getTranslation(doc.translations, 1)}
+                              {getTranslation(doc.translations, 'mn')}
                             </p>
                             <p className="text-xs text-gray-400 mt-1">ID: {doc.id}</p>
                           </div>

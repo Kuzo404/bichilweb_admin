@@ -1,6 +1,6 @@
 'use client';
 
-import { CustomPage } from '@/data/mockPages';
+import { CustomPage } from '@/types/pages';
 
 interface PreviewProps {
   data: Partial<CustomPage>;

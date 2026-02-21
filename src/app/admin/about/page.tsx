@@ -22,7 +22,6 @@ export default function AboutAdminPage() {
   const handleSaveStructure = (data: Structure) => {
     setLoading(true)
     setTimeout(() => {
-      console.log('Saving structure:', data)
       alert('Амжилттай хадгаллаа')
       setLoading(false)
     }, 500)

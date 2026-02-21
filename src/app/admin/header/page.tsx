@@ -490,7 +490,6 @@ export default function HeaderPage() {
     try {
       setLoading(true)
       setFetchError(null)
-      console.log('📥 Өгөгдлийн сангаас header мэдээлэл татаж байна...', `${API_BASE_URL}`)
       
       const response = await fetch(`${API_BASE_URL}`)
       
@@ -507,10 +506,6 @@ export default function HeaderPage() {
         setDataSource('error')
       }
       
-      console.log('✅ Өгөгдлийн сангаас амжилттай авлаа:', data)
-      console.log('  - Header ID:', data.id)
-      console.log('  - Цэсний тоо:', data.menus?.length || 0)
-      console.log('  - Лого байгаа эсэх:', !!data.logo)
 
       // Хэрэв цэс олдоогүй бол мэдэгдэл
       if (!data.menus || data.menus.length === 0) {
@@ -522,7 +517,6 @@ export default function HeaderPage() {
 
       // API-ийн бүтцийг дотоод бүтэц рүү хувиргах
       const { items, style } = transformApiToInternal(data)
-      console.log('✅ Хувиргалт дууслаа:', items.length, 'цэс')
       
       setHeaderId(data.id || null)
       setMenuItems(items)
@@ -554,8 +548,6 @@ export default function HeaderPage() {
         return
       }
 
-      console.log('Logo хадгалж байна... URL:', headerStyle.logoUrl.substring(0, 50) + '...')
-      
       // Only send logo and logo_size to backend
       const logoData = {
         id: headerId || undefined,
@@ -577,7 +569,6 @@ export default function HeaderPage() {
       }
 
       const result = await response.json()
-      console.log('Logo saved successfully:', result)
       
       // Логоны түүхэнд нэмэх (DB)
       try {
@@ -652,7 +643,6 @@ export default function HeaderPage() {
       }
 
       setSaveProgress({ message: 'Хуучин цэснүүдийг устгаж байна...', percent: 30 })
-      console.log('📤 Өгөгдлийн санд хадгалж байна...', menuItems.length, 'цэс')
       
       setSaveProgress({ message: `${apiData.menus?.length || 0} цэсийг хадгалж байна...`, percent: 50 })
       
@@ -669,7 +659,6 @@ export default function HeaderPage() {
       }
 
       const result = await response.json()
-      console.log('✅ Амжилттай хадгалагдлаа:', result)
       
       setSaveProgress({ message: 'Шинэчлэгдсэн өгөгдлийг ачаалж байна...', percent: 85 })
       // Хадгалсны дараа өгөгдлийн сангаас дахин ачаалж шинэчлэх
@@ -826,8 +815,6 @@ export default function HeaderPage() {
         menus,
       }
 
-      console.log('🗑️ Цэс устгаад DB руу хадгалж байна...', JSON.stringify(apiData.menus?.length))
-      
       setSaveProgress({ message: 'Серверт хадгалж байна...', percent: 50 })
       
       const response = await fetch(`${API_BASE_URL}`, {
@@ -843,7 +830,6 @@ export default function HeaderPage() {
       }
 
       const result = await response.json()
-      console.log('✅ Устгалт амжилттай хадгалагдлаа:', result)
       
       setSaveProgress({ message: 'Амжилттай устгагдлаа! ✅', percent: 100 })
       setOriginalMenuItems(JSON.parse(JSON.stringify(remainingItems)))
@@ -1585,7 +1571,7 @@ export default function HeaderPage() {
                               img.style.display = 'none'
                             }}
                             onLoad={() => {
-                              console.log('Logo loaded successfully:', headerStyle.logoUrl)
+                              // loaded
                             }}
                           />
                         </div>

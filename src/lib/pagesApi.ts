@@ -1,4 +1,4 @@
-import type { CustomPage, PageType } from '@/data/mockPages';
+import type { CustomPage, PageType } from '@/types/pages';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '/api';
 

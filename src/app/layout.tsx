@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { LanguageProvider } from '@/contexts/LanguageContext'
-import { ProductProvider } from "@/contexts/productContext";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -22,12 +21,9 @@ export default function RootLayout({
   return (
     <html lang="mn">
       <body className={`${inter.variable} antialiased bg-gray-50`}>
-        <ProductProvider>
-          <LanguageProvider>
-            {children}
-          </LanguageProvider>
-        </ProductProvider>
-
+        <LanguageProvider>
+          {children}
+        </LanguageProvider>
       </body>
     </html>
   );

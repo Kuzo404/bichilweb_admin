@@ -315,8 +315,6 @@ export default function CTAPage() {
         },
       })
 
-      console.log('Create response:', response.data)
-
       await fetchSlides()
       setSuccess('Слайд амжилттай нэмэгдлээ!')
       handleCloseModal()
@@ -370,8 +368,6 @@ export default function CTAPage() {
           'Content-Type': 'multipart/form-data',
         },
       })
-
-      console.log('Update response:', response.data)
 
       await fetchSlides()
       setSuccess('Слайд амжилттай засагдлаа!')
