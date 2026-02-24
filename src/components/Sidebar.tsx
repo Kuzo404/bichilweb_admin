@@ -93,14 +93,14 @@ const staticNavigation = [
 ]
 
 function getProductLabel(product: Product): string {
-  const mn = product.translations.find((t) => t.language === 2)
-  const en = product.translations.find((t) => t.language === 1)
+  const mn = (product.translations || []).find((t) => t.language === 2)
+  const en = (product.translations || []).find((t) => t.language === 1)
   return mn?.label || en?.label || `Бүтээгдэхүүн #${product.id}`
 }
 
 function getServiceTitle(service: Service): string {
-  const mn = service.translations.find((t) => t.language === 2)
-  const en = service.translations.find((t) => t.language === 1)
+  const mn = (service.translations || []).find((t) => t.language === 2)
+  const en = (service.translations || []).find((t) => t.language === 1)
   return mn?.title || en?.title || `Үйлчилгээ #${service.id}`
 }
 
@@ -115,7 +115,7 @@ export default function Sidebar() {
     const fetchProducts = async () => {
       try {
         const response = await axiosInstance.get('/product/')
-        setProducts(response.data)
+        setProducts(Array.isArray(response.data) ? response.data : [])
       } catch (error) {
         console.error('Бүтээгдэхүүн татахад алдаа гарлаа:', error)
       } finally {
@@ -129,7 +129,7 @@ export default function Sidebar() {
     const fetchServices = async () => {
       try {
         const response = await axiosInstance.get('/services/')
-        setServices(response.data)
+        setServices(Array.isArray(response.data) ? response.data : [])
       } catch (error) {
         console.error('Үйлчилгээ татахад алдаа гарлаа:', error)
       } finally {
@@ -145,7 +145,7 @@ export default function Sidebar() {
     children: [
       { name: 'Бүтээгдхүүн удирдлага', href: '/admin/products-setting' },
       { name: 'Бүтээгдхүүн нэмэх', href: '/admin/product-add' },
-      ...products.map((product) => ({
+      ...(Array.isArray(products) ? products : []).map((product) => ({
         name: getProductLabel(product),
         href: `/admin/products/${product.id}`,
       })),
@@ -157,7 +157,7 @@ export default function Sidebar() {
     icon: BriefcaseIcon,
     children: [
       { name: 'Үйлчилгээ нэмэх', href: '/admin/service-add' },
-      ...services.map((service) => ({
+      ...(Array.isArray(services) ? services : []).map((service) => ({
         name: getServiceTitle(service),
         href: `/admin/services/${service.id}`,
       })),

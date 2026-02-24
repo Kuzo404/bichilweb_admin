@@ -207,14 +207,14 @@ const mapApiNewsToAdmin = (item: ApiNewsItem): NewsItem => {
     isActive: item.render,
     isPinnedNews: item.feature,
     isPinnedHome: item.show_on_home || false,
-    socialLinks: item.socials.map((s, idx) => ({
+    socialLinks: (item.socials || []).map((s, idx) => ({
       id: `${s.icon}-${idx}`,
       platform: s.icon,
       url: s.social,
       active: true,
       icon: '',
     })),
-    additionalImages: item.images.map(img => img.image),
+    additionalImages: (item.images || []).map(img => img.image),
     videoUrl: item.video,
     videoOrientation: item.video_orientation || 'horizontal',
     facebookUrl: item.facebook_url || '',
@@ -574,7 +574,7 @@ export default function NewsPage() {
   const fetchNews = async () => {
     try {
       const response = await axiosInstance.get('/news/')
-      const data: ApiNewsItem[] = response.data
+      const data: ApiNewsItem[] = Array.isArray(response.data) ? response.data : []
       setNews(data.map(mapApiNewsToAdmin))
     } catch (error) {
       console.error('Failed to fetch news:', error)
@@ -585,7 +585,7 @@ export default function NewsPage() {
   const fetchCategories = async () => {
     try {
       const response = await axiosInstance.get<CategoryAPI[]>('/news-category/')
-      const transformedCategories = response.data.map(mapAPICategoryToCategory)
+      const transformedCategories = (Array.isArray(response.data) ? response.data : []).map(mapAPICategoryToCategory)
       setCategoryTabs(transformedCategories)
     } catch (error) {
       console.error('Failed to fetch categories:', error)

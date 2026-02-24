@@ -43,7 +43,8 @@ export const heroAPI = {
   async getSlides(): Promise<HeroSlide[]> {
     const response = await fetch(`${API_BASE_URL}/hero-slides`)
     if (!response.ok) throw new Error('Failed to fetch slides')
-    const data: HeroSlideAPI[] = await response.json()
+    const raw = await response.json()
+    const data: HeroSlideAPI[] = Array.isArray(raw) ? raw : []
     return data.map(transformFromAPI)
   },
 

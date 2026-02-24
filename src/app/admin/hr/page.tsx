@@ -264,7 +264,7 @@ export default function HRPage() {
     try {
       setLoading(true);
       const response = await axiosInstance.get('/jobs/');
-      const transformedJobs = response.data.map(transformAPIToJob);
+      const transformedJobs = (Array.isArray(response.data) ? response.data : []).map(transformAPIToJob);
       setJobs(transformedJobs);
     } catch (error) {
       console.error('Error fetching jobs:', error);

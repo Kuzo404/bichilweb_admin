@@ -106,13 +106,13 @@ export function mapAdminProductToFrontend(
       decision: adminData.details.decision,
     },
     // Transform LocalizedItem[] to string[] based on language
-    materials: adminData.materials.map((item) =>
+    materials: (adminData.materials || []).map((item) =>
       language === 'mn' ? item.mn : item.en
     ),
-    collateral: adminData.collateral.map((item) =>
+    collateral: (adminData.collateral || []).map((item) =>
       language === 'mn' ? item.mn : item.en
     ),
-    conditions: adminData.conditions.map((item) =>
+    conditions: (adminData.conditions || []).map((item) =>
       language === 'mn' ? item.mn : item.en
     ),
     //   NOT included:
