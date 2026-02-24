@@ -209,283 +209,6 @@ export default function HeaderPage() {
   // Үйлчилгээ (services) зэргийг Django backend-аас татаж dropdown-д харуулна.
   // Тогтмол (hardcoded) утга байхгүй - бүгд DB-ээс ирнэ.
   // ============================================================================
-
-  useEffect(() => {
-    const buildPageOptions = async () => {
-      setLoadingPages(true)
-      try {
-        // Бүтээгдэхүүний ангилал + Үйлчилгээг зэрэг татах
-        const [catRes, svcRes] = await Promise.all([
-          fetch(`${DJANGO_API_URL}/categories/`),
-          fetch(`${DJANGO_API_URL}/services/`),
-        ])
-
-        const options: PageOption[] = [
-          { label: '-- Хуудас сонгох --', value: '' },
-          { label: '# (Дэд цэстэй - линкгүй)', value: '#' },
-        ]
-
-        // ── Бүтээгдэхүүн (categories → product_types → products) ──
-        if (catRes.ok) {
-          const categories: CategoryData[] = await catRes.json()
-          if (categories.length > 0) {
-            options.push({ label: '─── Бүтээгдэхүүн ───', value: '', disabled: true })
-            categories.forEach((cat) => {
-              // Ангиллын нэр
-              const catLabel =
-                cat.translations.find((t) => t.language === 2)?.label ||
-                cat.translations.find((t) => t.language === 1)?.label || ''
-
-              cat.product_types.forEach((pt) => {
-                const ptLabel =
-                  pt.translations.find((t) => t.language === 2)?.label ||
-                  pt.translations.find((t) => t.language === 1)?.label || ''
-
-                if (pt.products.length > 0) {
-                  // Бүтээгдэхүүн бүрийг нэмэх
-                  pt.products.forEach((p) => {
-                    const pLabel =
-                      p.translations.find((t) => t.language === 2)?.label ||
-                      p.translations.find((t) => t.language === 1)?.label || ''
-                    options.push({
-                      label: `  ${catLabel} → ${pLabel}`,
-                      value: `/products/${p.id}`,
-                    })
-                  })
-                } else {
-                  // Бүтээгдэхүүнгүй бол төрлийн хуудас
-                  options.push({
-                    label: `  ${catLabel} → ${ptLabel}`,
-                    value: `/products/type/${pt.id}`,
-                  })
-                }
-              })
-            })
-          }
-        }
-
-        // ── Үйлчилгээ (services) ──
-        if (svcRes.ok) {
-          const services: ServiceData[] = await svcRes.json()
-          if (services.length > 0) {
-            options.push({ label: '─── Үйлчилгээ ───', value: '', disabled: true })
-            services.forEach((svc) => {
-              const svcLabel =
-                svc.translations.find((t) => t.language === 2)?.title ||
-                svc.translations.find((t) => t.language === 1)?.title || ''
-              options.push({ label: `  ${svcLabel}`, value: `/services/${svc.id}` })
-            })
-          }
-        }
-
-        // ── Танилцуулга (About) ──
-        options.push({ label: '─── Танилцуулга ───', value: '', disabled: true })
-        options.push({ label: '  Танилцуулга (Бидний тухай)', value: '/about' })
-
-        // ── Салбарууд (Branches) ──
-        options.push({ label: '─── Салбарууд ───', value: '', disabled: true })
-        options.push({ label: '  Салбарууд', value: '/branches' })
-
-        // ── Мэдээ (News) ──
-        options.push({ label: '─── Мэдээ ───', value: '', disabled: true })
-        options.push({ label: '  Мэдээ', value: '/news' })
-
-        // ── Хүний нөөц (HR / Careers) ──
-        options.push({ label: '─── Хүний нөөц ───', value: '', disabled: true })
-        options.push({ label: '  Хүний нөөц', value: '/about/hr' })
-
-        // Гадаад линк (өөрөө бичих) сонголт
-        options.push({ label: '─── Бусад ───', value: '', disabled: true })
-        options.push({ label: 'Гадаад линк (өөрөө бичих)', value: 'custom' })
-
-        setPageOptions(options)
-      } catch (error) {
-        console.error('Хуудсын сонголтуудыг ачаалахад алдаа:', error)
-      } finally {
-        setLoadingPages(false)
-      }
-    }
-
-    buildPageOptions()
-  }, [])
-
-  // ============================================================================
-  // DATA TRANSFORMATION FUNCTIONS
-  // ============================================================================
-
-  const transformApiToInternal = (data: HeaderData): { items: MenuItem[], style: InternalHeaderStyle } => {
-    const items: MenuItem[] = []
-    let idCounter = 1
-
-    // Safely handle menus if undefined
-    const menus = data.menus || []
-    
-    menus.forEach((menu) => {
-      const menuId = `menu-${menu.id || idCounter++}`
-      const mnTranslation = menu.translations?.find(t => t.language_id === 2)
-      const enTranslation = menu.translations?.find(t => t.language_id === 1)
-
-      items.push({
-        id: menuId,
-        title_mn: mnTranslation?.label || '',
-        title_en: enTranslation?.label || '',
-        href: menu.path,
-        order: menu.index,
-        isActive: menu.visible === 1,
-        parentId: null,
-        font: typeof menu.font === 'number' ? 'font-sans' : menu.font,
-        textColor: '#1f2937',
-        level: 0,
-      })
-
-      const submenus = menu.submenus || []
-      submenus.forEach((submenu) => {
-        const submenuId = `submenu-${submenu.id || idCounter++}`
-        const mnSubTranslation = submenu.translations?.find(t => t.language_id === 2)
-        const enSubTranslation = submenu.translations?.find(t => t.language_id === 1)
-
-        items.push({
-          id: submenuId,
-          title_mn: mnSubTranslation?.label || '',
-          title_en: enSubTranslation?.label || '',
-          href: submenu.path,
-          order: submenu.index,
-          isActive: submenu.visible === 1,
-          parentId: menuId,
-          font: typeof submenu.font === 'number' ? 'font-sans' : submenu.font.toString(),
-          textColor: '#1f2937',
-          level: 1,
-        })
-
-        const tertiaryMenus = submenu.tertiary_menus || []
-        tertiaryMenus.forEach((tertiary) => {
-          const tertiaryId = `tertiary-${tertiary.id || idCounter++}`
-          const mnTerTranslation = tertiary.translations?.find(t => t.language_id === 2)
-          const enTerTranslation = tertiary.translations?.find(t => t.language_id === 1)
-
-          items.push({
-            id: tertiaryId,
-            title_mn: mnTerTranslation?.label || '',
-            title_en: enTerTranslation?.label || '',
-            href: tertiary.path,
-            order: tertiary.index,
-            isActive: tertiary.visible === 1,
-            parentId: submenuId,
-            font: tertiary.font,
-            textColor: '#1f2937',
-            level: 2,
-          })
-        })
-      })
-    })
-
-    const apiStyle = (data.styles?.[0]) || {
-      bgcolor: '#ffffff',
-      fontcolor: '#1f2937',
-      hovercolor: '#0d9488',
-      height: 80,
-      sticky: 1,
-      max_width: '1240px',
-      logo_size: 44,
-    }
-
-    const style: InternalHeaderStyle = {
-      backgroundColor: apiStyle.bgcolor,
-      textColor: apiStyle.fontcolor,
-      hoverColor: apiStyle.hovercolor,
-      height: `${apiStyle.height}px`,
-      isSticky: apiStyle.sticky === 1,
-      logoUrl: data.logo || '',
-      logoText: 'BichilGlobus',
-      maxWidth: apiStyle.max_width || '1240px',
-      logoSize: apiStyle.logo_size || 44,
-    }
-
-    return { items, style }
-  }
-
-  const transformInternalToApi = (): HeaderData => {
-    const rootItems = menuItems.filter(item => !item.parentId).sort((a, b) => a.order - b.order)
-    
-    const menus: Menu[] = rootItems.map(rootItem => {
-      const submenus: Submenu[] = menuItems
-        .filter(item => item.parentId === rootItem.id)
-        .sort((a, b) => a.order - b.order)
-        .map(submenuItem => {
-          const tertiaryMenus: TertiaryMenu[] = menuItems
-            .filter(item => item.parentId === submenuItem.id)
-            .sort((a, b) => a.order - b.order)
-            .map(tertiaryItem => ({
-              id: tertiaryItem.id ? parseInt(tertiaryItem.id.replace('tertiary-', '')) : undefined,
-              path: tertiaryItem.href,
-              font: tertiaryItem.font || 'font-sans',
-              index: tertiaryItem.order,
-              visible: tertiaryItem.isActive ? 1 : 0,
-              translations: [
-                { label: tertiaryItem.title_en, language_id: 1 },
-                { label: tertiaryItem.title_mn, language_id: 2 },
-              ],
-            }))
-
-          return {
-            id: submenuItem.id ? parseInt(submenuItem.id.replace('submenu-', '')) : undefined,
-            path: submenuItem.href,
-            font: submenuItem.font || 'font-sans',
-            index: submenuItem.order,
-            visible: submenuItem.isActive ? 1 : 0,
-            translations: [
-              { label: submenuItem.title_en, language_id: 1 },
-              { label: submenuItem.title_mn, language_id: 2 },
-            ],
-            tertiary_menus: tertiaryMenus,
-          }
-        })
-
-      return {
-        id: rootItem.id ? parseInt(rootItem.id.replace('menu-', '')) : undefined,
-        path: rootItem.href,
-        font: rootItem.font || 'font-sans',
-        index: rootItem.order,
-        visible: rootItem.isActive ? 1 : 0,
-        translations: [
-          { label: rootItem.title_en, language_id: 1 },
-          { label: rootItem.title_mn, language_id: 2 },
-        ],
-        submenus,
-      }
-    })
-
-    return {
-      id: headerId || undefined,
-      logo: headerStyle.logoUrl,
-      active: 1,
-      styles: [
-        {
-          id: 1,
-          bgcolor: headerStyle.backgroundColor,
-          fontcolor: headerStyle.textColor,
-          hovercolor: headerStyle.hoverColor,
-          height: parseInt(headerStyle.height) || 80,
-          sticky: headerStyle.isSticky ? 1 : 0,
-          max_width: headerStyle.maxWidth || '1240px',
-          logo_size: headerStyle.logoSize || 44,
-        },
-      ],
-      menus,
-    }
-  }
-
-  // ============================================================================
-  // API FUNCTIONS
-  // ============================================================================
-
-  // ============================================================================
-  // ӨГӨГДЛИЙН САНГААС ЦЭСҮҮДИЙГ ТАТАХ
-  // ============================================================================
-  // Энэ функц нь /api/admin/header-menu API-г дуудаж,
-  // Django backend → PostgreSQL-ээс header + меню + дэд цэс + орчуулгуудыг татна.
-  // Алдаа гарвал fetchError state-д алдааны мэдээллийг хадгална.
-  // ============================================================================
   const fetchData = async () => {
     try {
       setLoading(true)
@@ -614,7 +337,7 @@ export default function HeaderPage() {
   // ЦЭСҮҮДИЙГ ӨГӨГДЛИЙН САНД ХАДГАЛАХ
   // ============================================================================
   // Бүх цэсийн өгөгдлийг API руу илгээж, Django backend-аар дамжуулан
-  // PostgreSQL-д хадгална. Хадгалсны дараа DB-ээс дахин татаж шинэчлэнэ.
+  // PostgreSQL-д хадгална. Хадгалсны дараа DB-ээс дахин татаж шинэчлэгдээ.
   // ============================================================================
   const handleSaveAll = async () => {
     try {
@@ -628,7 +351,7 @@ export default function HeaderPage() {
         console.warn('⚠️ Header ID эсвэл logo байхгүй')
       }
 
-      // ⚠️ Хоосон цэстэй хадгалахаас сэргийлэх
+      // ⚠️ Хоосон цэсэй хадгалахаас сэргийлэх
       if (!apiData.menus || apiData.menus.length === 0) {
         const confirmed = confirm(
           '⚠️ Анхааруулга: Цэс хоосон байна!\n\n'
@@ -1111,7 +834,7 @@ export default function HeaderPage() {
             </div>
 
             {/* Preview - bichilweb frontend-тэй яг адилхан */}
-            <div className="rounded-2xl overflow-visible border border-slate-200 bg-gradient-to-b from-slate-100 to-slate-50">
+            <div className="rounded-2xl overflow-visible border border-slate-200 bg-linear-to-b from-slate-100 to-slate-50">
               <div className="px-4 py-2.5 border-b border-slate-200 flex items-center justify-between bg-white/50">
                 <div className="flex items-center gap-2">
                   <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
@@ -1170,7 +893,7 @@ export default function HeaderPage() {
                                 onError={(e) => {
                                   const img = e.target as HTMLImageElement
                                   img.style.display = 'none'
-                                  img.parentElement!.innerHTML = '<div class="w-8 h-8 rounded-full bg-gradient-to-br from-teal-500 to-teal-600 flex items-center justify-center text-white font-bold text-xs shadow-md">BG</div>'
+                                  img.parentElement!.innerHTML = '<div class="w-8 h-8 rounded-full bg-linear-to-br from-teal-500 to-teal-600 flex items-center justify-center text-white font-bold text-xs shadow-md">BG</div>'
                                 }}
                               />
                             )}
@@ -1267,7 +990,7 @@ export default function HeaderPage() {
 
             {/* Цэсний жагсаалт — өгөгдлийн сангаас */}
             <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
-              <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between bg-gradient-to-r from-slate-50 to-white">
+              <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between bg-linear-to-r from-slate-50 to-white">
                 <div className="flex items-center gap-2">
                   <svg className="w-5 h-5 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
@@ -1357,30 +1080,14 @@ export default function HeaderPage() {
           <div className="space-y-6">
             {/* Color Settings */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-              <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center">
-                    <SwatchIcon className="w-6 h-6 text-white" />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-900">Өнгөний тохиргоо</h3>
-                    <p className="text-sm text-gray-500">Header-ийн өнгө, фонт</p>
-                  </div>
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-10 h-10 rounded-lg bg-linear-to-br from-purple-500 to-purple-600 flex items-center justify-center">
+                  <SwatchIcon className="w-6 h-6 text-white" />
                 </div>
-                <button
-                  onClick={() => setHeaderStyle(prev => ({
-                    ...prev,
-                    backgroundColor: defaultHeaderStyle.backgroundColor,
-                    textColor: defaultHeaderStyle.textColor,
-                    hoverColor: defaultHeaderStyle.hoverColor,
-                  }))}
-                  className="px-4 py-2 text-sm font-medium text-purple-700 bg-purple-50 border border-purple-200 rounded-lg hover:bg-purple-100 transition-colors flex items-center gap-2"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                  </svg>
-                  Анхний тохиргоо
-                </button>
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900">Өнгөний тохиргоо</h3>
+                  <p className="text-sm text-gray-500">Header-ийн өнгө, фонт</p>
+                </div>
               </div>
               
               <div className="space-y-5">
@@ -1421,7 +1128,7 @@ export default function HeaderPage() {
             {/* Size Settings */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
               <div className="flex items-center gap-3 mb-6">
-                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
+                <div className="w-10 h-10 rounded-lg bg-linear-to-br from-blue-500 to-blue-600 flex items-center justify-center">
                   <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 5h16M4 12h16M4 19h16" />
                   </svg>
@@ -1531,7 +1238,7 @@ export default function HeaderPage() {
           <div className="space-y-6">
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
               <div className="flex items-center gap-3 mb-6">
-                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-teal-500 to-teal-600 flex items-center justify-center">
+                <div className="w-10 h-10 rounded-lg bg-linear-to-br from-teal-500 to-teal-600 flex items-center justify-center">
                   <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                   </svg>
@@ -1760,7 +1467,9 @@ export default function HeaderPage() {
               </div>
               <label className="relative inline-flex items-center cursor-pointer">
                 <input type="checkbox" checked={formData.isActive} onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })} className="sr-only peer" />
-                <div className="w-11 h-6 bg-slate-200 rounded-full peer peer-checked:bg-teal-600 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
+                <div className="w-11 h-6 bg-slate-200 rounded-full peer peer-checked:bg-teal-600 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-0.5 after:left-0.5">
+                  <span className="text-xs text-slate-500">Харагдах</span>
+                </div>
               </label>
             </div>
 
@@ -1830,7 +1539,7 @@ function MenuItemRow({ item, level, getChildren, onEdit, onDelete, expandedIds, 
         
         <div className="flex items-center gap-2">
           {item.href !== '#' && <span className="text-xs text-slate-400 truncate max-w-[150px] hidden sm:block">{item.href}</span>}
-          <span className={`w-2 h-2 rounded-full flex-shrink-0 ${item.isActive ? 'bg-emerald-500' : 'bg-slate-300'}`} />
+          <span className={`w-2 h-2 rounded-full shrink-0 ${item.isActive ? 'bg-emerald-500' : 'bg-slate-300'}`} />
           <div className="flex items-center">
             <button onClick={() => onEdit(item)} className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors" title="Засах">
               <PencilIcon className="h-4 w-4" />
@@ -1878,3 +1587,13 @@ function ColorField({ label, description, value, onChange, preview }: ColorField
     </div>
   )
 }
+
+const transformApiToInternal = (data: any): { items: any; style: any } => {
+  // Placeholder implementation
+  return { items: [], style: {} };
+};
+
+const transformInternalToApi = (): any => {
+  // Placeholder implementation
+  return {};
+};
