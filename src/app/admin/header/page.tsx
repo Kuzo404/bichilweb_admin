@@ -184,6 +184,158 @@ export default function HeaderPage() {
   const [logoHistory, setLogoHistory] = useState<LogoHistoryItem[]>([])
   const [isSavingLogo, setIsSavingLogo] = useState(false)
 
+  // ============================================================================
+  // API ↔ INTERNAL FORMAT ХӨРВҮҮЛЭГЧИД
+  // ============================================================================
+
+  const transformApiToInternal = (data: HeaderData): { items: MenuItem[], style: InternalHeaderStyle } => {
+    const items: MenuItem[] = []
+
+    if (Array.isArray(data.menus)) {
+      data.menus.forEach((menu) => {
+        const menuId = `menu-${menu.id}`
+        const mnTrans = menu.translations?.find(t => t.language_id === 2)
+        const enTrans = menu.translations?.find(t => t.language_id === 1)
+
+        items.push({
+          id: menuId,
+          title_mn: mnTrans?.label || '',
+          title_en: enTrans?.label || '',
+          href: menu.path || '',
+          order: menu.index || 0,
+          isActive: menu.visible === 1,
+          parentId: null,
+          font: String(menu.font || 'font-sans'),
+          level: 0,
+        })
+
+        if (Array.isArray(menu.submenus)) {
+          menu.submenus.forEach((submenu) => {
+            const submenuId = `submenu-${submenu.id}`
+            const subMnTrans = submenu.translations?.find(t => t.language_id === 2)
+            const subEnTrans = submenu.translations?.find(t => t.language_id === 1)
+
+            items.push({
+              id: submenuId,
+              title_mn: subMnTrans?.label || '',
+              title_en: subEnTrans?.label || '',
+              href: submenu.path || '',
+              order: submenu.index || 0,
+              isActive: submenu.visible === 1,
+              parentId: menuId,
+              font: String(submenu.font || 'font-sans'),
+              level: 1,
+            })
+
+            if (Array.isArray(submenu.tertiary_menus)) {
+              submenu.tertiary_menus.forEach((tertiary) => {
+                const tertiaryId = `tertiary-${tertiary.id}`
+                const terMnTrans = tertiary.translations?.find(t => t.language_id === 2)
+                const terEnTrans = tertiary.translations?.find(t => t.language_id === 1)
+
+                items.push({
+                  id: tertiaryId,
+                  title_mn: terMnTrans?.label || '',
+                  title_en: terEnTrans?.label || '',
+                  href: tertiary.path || '',
+                  order: tertiary.index || 0,
+                  isActive: tertiary.visible === 1,
+                  parentId: submenuId,
+                  font: tertiary.font || 'font-sans',
+                  level: 2,
+                })
+              })
+            }
+          })
+        }
+      })
+    }
+
+    const apiStyle = Array.isArray(data.styles) && data.styles.length > 0 ? data.styles[0] : null
+    const style: InternalHeaderStyle = {
+      backgroundColor: apiStyle?.bgcolor || '#ffffff',
+      textColor: apiStyle?.fontcolor || '#1f2937',
+      hoverColor: apiStyle?.hovercolor || '#0d9488',
+      height: apiStyle?.height ? `${apiStyle.height}px` : '80px',
+      isSticky: apiStyle?.sticky === 1,
+      logoUrl: data.logo || '',
+      logoText: 'BichilGlobus',
+      maxWidth: apiStyle?.max_width || '1240px',
+      logoSize: apiStyle?.logo_size || 44,
+    }
+
+    return { items, style }
+  }
+
+  const transformInternalToApi = (): HeaderData => {
+    const rootItems = menuItems.filter(item => !item.parentId).sort((a, b) => a.order - b.order)
+
+    const menus: Menu[] = rootItems.map(rootItem => {
+      const submenus: Submenu[] = menuItems
+        .filter(item => item.parentId === rootItem.id)
+        .sort((a, b) => a.order - b.order)
+        .map(submenuItem => {
+          const tertiaryMenus: TertiaryMenu[] = menuItems
+            .filter(item => item.parentId === submenuItem.id)
+            .sort((a, b) => a.order - b.order)
+            .map(tertiaryItem => ({
+              id: tertiaryItem.id.startsWith('tertiary-') ? parseInt(tertiaryItem.id.replace('tertiary-', '')) : undefined,
+              path: tertiaryItem.href,
+              font: tertiaryItem.font || 'font-sans',
+              index: tertiaryItem.order,
+              visible: tertiaryItem.isActive ? 1 : 0,
+              translations: [
+                { label: tertiaryItem.title_en, language_id: 1 },
+                { label: tertiaryItem.title_mn, language_id: 2 },
+              ],
+            }))
+
+          return {
+            id: submenuItem.id.startsWith('submenu-') ? parseInt(submenuItem.id.replace('submenu-', '')) : undefined,
+            path: submenuItem.href,
+            font: submenuItem.font || 'font-sans',
+            index: submenuItem.order,
+            visible: submenuItem.isActive ? 1 : 0,
+            translations: [
+              { label: submenuItem.title_en, language_id: 1 },
+              { label: submenuItem.title_mn, language_id: 2 },
+            ],
+            tertiary_menus: tertiaryMenus,
+          }
+        })
+
+      return {
+        id: rootItem.id.startsWith('menu-') ? parseInt(rootItem.id.replace('menu-', '')) : undefined,
+        path: rootItem.href,
+        font: rootItem.font || 'font-sans',
+        index: rootItem.order,
+        visible: rootItem.isActive ? 1 : 0,
+        translations: [
+          { label: rootItem.title_en, language_id: 1 },
+          { label: rootItem.title_mn, language_id: 2 },
+        ],
+        submenus,
+      }
+    })
+
+    return {
+      id: headerId || undefined,
+      logo: headerStyle.logoUrl,
+      active: 1,
+      styles: [{
+        id: 1,
+        bgcolor: headerStyle.backgroundColor,
+        fontcolor: headerStyle.textColor,
+        hovercolor: headerStyle.hoverColor,
+        height: parseInt(headerStyle.height) || 80,
+        sticky: headerStyle.isSticky ? 1 : 0,
+        max_width: headerStyle.maxWidth || '1240px',
+        logo_size: headerStyle.logoSize || 44,
+      }],
+      menus,
+    }
+  }
+
   // Өгөгдлийн сангаас логоны түүхийг татах
   const fetchLogoHistory = async () => {
     try {
@@ -1588,12 +1740,3 @@ function ColorField({ label, description, value, onChange, preview }: ColorField
   )
 }
 
-const transformApiToInternal = (data: any): { items: any; style: any } => {
-  // Placeholder implementation
-  return { items: [], style: {} };
-};
-
-const transformInternalToApi = (): any => {
-  // Placeholder implementation
-  return {};
-};
