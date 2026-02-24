@@ -11,6 +11,41 @@ import { NextRequest, NextResponse } from 'next/server'
 const BACKEND_URL = process.env.BACKEND_API_URL || 'http://127.0.0.1:8000/api/v1'
 
 // ============================================================================
+// Cloudflare 429 rate limit-ээс зайлсхийх retry helper
+// ============================================================================
+const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
+
+async function fetchWithRetry(
+  url: string,
+  options: RequestInit = {},
+  retries = 3,
+  baseDelay = 1500
+): Promise<Response> {
+  const headers: Record<string, string> = {
+    'Accept': 'application/json',
+    'User-Agent': 'BichilWebAdmin/1.0',
+    ...(options.headers as Record<string, string> || {}),
+  }
+
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    const res = await fetch(url, { ...options, headers })
+
+    // Cloudflare 429 rate limit or 503 challenge
+    if ((res.status === 429 || res.status === 503) && attempt < retries) {
+      const waitTime = baseDelay * Math.pow(2, attempt) // exponential backoff
+      console.warn(`⚠️ ${res.status} from ${url}, retrying in ${waitTime}ms (attempt ${attempt + 1}/${retries})`)
+      await delay(waitTime)
+      continue
+    }
+
+    return res
+  }
+
+  // Should not reach here, but just in case
+  return fetch(url, { ...options, headers })
+}
+
+// ============================================================================
 // GET - Өгөгдлийн сангаас header мэдээлэл татах
 // ============================================================================
 // Django-ийн /api/v1/headers/ endpoint нь header + menus + styles + submenus
@@ -18,9 +53,8 @@ const BACKEND_URL = process.env.BACKEND_API_URL || 'http://127.0.0.1:8000/api/v1
 // ============================================================================
 export async function GET() {
   try {
-    const res = await fetch(`${BACKEND_URL}/headers/`, {
+    const res = await fetchWithRetry(`${BACKEND_URL}/headers/`, {
       cache: 'no-store',   // Кэш хийхгүй - шинэ өгөгдөл авах
-      headers: { 'Accept': 'application/json' },
     })
 
     if (!res.ok) {
@@ -75,7 +109,7 @@ export async function POST(request: NextRequest) {
 
     if (headerId) {
       // Байгаа header-г шинэчлэх
-      const headerUpdateRes = await fetch(`${BACKEND_URL}/headers/${headerId}/`, {
+      const headerUpdateRes = await fetchWithRetry(`${BACKEND_URL}/headers/${headerId}/`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ logo: body.logo || '', active: body.active ?? 1 }),
@@ -87,7 +121,7 @@ export async function POST(request: NextRequest) {
       }
     } else {
       // Шинэ header үүсгэх
-      const headerRes = await fetch(`${BACKEND_URL}/headers/`, {
+      const headerRes = await fetchWithRetry(`${BACKEND_URL}/headers/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ logo: body.logo || '', active: body.active ?? 1 }),
@@ -107,9 +141,10 @@ export async function POST(request: NextRequest) {
 
     if (hasNewMenus) {
     // CASCADE: HeaderMenu устгахад submenu + tertiary автоматаар устгагдана
-    const bulkDelRes = await fetch(`${BACKEND_URL}/header-menu/bulk_delete/?header_id=${headerId}`, {
+    const bulkDelRes = await fetchWithRetry(`${BACKEND_URL}/header-menu/bulk_delete/?header_id=${headerId}`, {
       method: 'DELETE',
     })
+    await delay(500) // Cloudflare rate limit-ээс зайлсхийх
     } // hasNewMenus if блок хаалт
 
     // ── 3. Шинэ цэснүүдийг үүсгэх ──
@@ -129,7 +164,8 @@ export async function POST(request: NextRequest) {
           })),
         }
 
-        const menuRes = await fetch(`${BACKEND_URL}/header-menu/`, {
+        await delay(300) // Cloudflare rate limit-ээс зайлсхийх
+        const menuRes = await fetchWithRetry(`${BACKEND_URL}/header-menu/`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(menuPayload),
@@ -159,7 +195,8 @@ export async function POST(request: NextRequest) {
             })),
           }
 
-          const subRes = await fetch(`${BACKEND_URL}/header-submenu/`, {
+          await delay(300)
+          const subRes = await fetchWithRetry(`${BACKEND_URL}/header-submenu/`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(subPayload),
@@ -189,7 +226,8 @@ export async function POST(request: NextRequest) {
               })),
             }
 
-            const terRes = await fetch(`${BACKEND_URL}/header-tertiary/`, {
+            await delay(300)
+            const terRes = await fetchWithRetry(`${BACKEND_URL}/header-tertiary/`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify(terPayload),
@@ -210,9 +248,8 @@ export async function POST(request: NextRequest) {
       const style = body.styles[0]
 
       // Хуучин стиль байгаа эсэхийг шалгах
-      const existStyleRes = await fetch(`${BACKEND_URL}/header-style/`, {
-        headers: { 'Accept': 'application/json' },
-      })
+      await delay(300)
+      const existStyleRes = await fetchWithRetry(`${BACKEND_URL}/header-style/`)
       const existStyles = existStyleRes.ok ? await existStyleRes.json() : []
       const matchStyle = Array.isArray(existStyles)
         ? existStyles.find((s: { header: number }) => s.header === headerId)
@@ -230,13 +267,13 @@ export async function POST(request: NextRequest) {
       }
 
       if (matchStyle) {
-        await fetch(`${BACKEND_URL}/header-style/${matchStyle.id}/`, {
+        await fetchWithRetry(`${BACKEND_URL}/header-style/${matchStyle.id}/`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(stylePayload),
         })
       } else {
-        await fetch(`${BACKEND_URL}/header-style/`, {
+        await fetchWithRetry(`${BACKEND_URL}/header-style/`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(stylePayload),
@@ -245,9 +282,8 @@ export async function POST(request: NextRequest) {
     }
 
     // ── 5. Шинэчлэгдсэн бүрэн header буцаах ──
-    const updatedRes = await fetch(`${BACKEND_URL}/headers/${headerId}/`, {
-      headers: { 'Accept': 'application/json' },
-    })
+    await delay(300)
+    const updatedRes = await fetchWithRetry(`${BACKEND_URL}/headers/${headerId}/`)
     
     if (!updatedRes.ok) {
       console.error('❌ Updated header fetch failed:', updatedRes.status)
@@ -301,7 +337,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     // CASCADE устгалт: menu → submenus → tertiary_menus автоматаар устгагдана
-    const delRes = await fetch(`${BACKEND_URL}/${endpoint}/${id}/`, {
+    const delRes = await fetchWithRetry(`${BACKEND_URL}/${endpoint}/${id}/`, {
       method: 'DELETE',
     })
 
